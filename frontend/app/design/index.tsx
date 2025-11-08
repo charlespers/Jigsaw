@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import ComponentGraph from "./ComponentGraph";
 import PCBViewer from "./PCBViewer";
 import BOMCart from "./BOMCart";
+import MCPChat from "./MCPChat";
 import { useNavigate } from "react-router";
 
 export default function DesignInterface() {
@@ -29,9 +30,9 @@ export default function DesignInterface() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+    <div className="h-screen bg-zinc-950 text-white flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+      <header className="flex-shrink-0 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
@@ -73,23 +74,32 @@ export default function DesignInterface() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Left Panel - Component Graph */}
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-80 border-r border-zinc-800 bg-zinc-900/30 overflow-y-auto">
-          <ComponentGraph processingStage={processingStage} />
+          className="w-80 border-r border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <ComponentGraph processingStage={processingStage} />
+          </div>
         </motion.div>
 
-        {/* Center Panel - PCB Viewer */}
+        {/* Center Panel - PCB Viewer + Chat */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex-1 bg-zinc-950 overflow-hidden">
-          <PCBViewer processingStage={processingStage} />
+          className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-h-0">
+          {/* PCB Viewer - takes remaining space */}
+          <div className="flex-1 overflow-hidden min-h-0">
+            <PCBViewer processingStage={processingStage} />
+          </div>
+          {/* MCP Chat - fixed height at bottom */}
+          <div className="flex-shrink-0 border-t border-zinc-800">
+            <MCPChat useMock={true} />
+          </div>
         </motion.div>
 
         {/* Right Panel - BOM Cart */}
@@ -97,8 +107,10 @@ export default function DesignInterface() {
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="w-96 border-l border-zinc-800 bg-zinc-900/30 overflow-y-auto">
-          <BOMCart processingStage={processingStage} />
+          className="w-96 border-l border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <BOMCart processingStage={processingStage} />
+          </div>
         </motion.div>
       </div>
     </div>
