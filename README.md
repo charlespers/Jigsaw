@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧩 Jigsaw
+# Jigsaw
 
 ### **AI-Powered PCB Design from Concept to Shopping Cart**
 
@@ -12,26 +12,26 @@
 
 **From natural language to complete PCB design in minutes, not hours.**
 
-[🚀 Live Demo](#-try-it-now) • [📖 Documentation](#-documentation) • [💻 Installation](#-installation) • [🎯 Features](#-features)
+[Live Demo](#-try-it-now) • [Documentation](#-documentation) • [Installation](#-installation) • [Features](#-features)
 
 </div>
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
 Engineers waste **countless hours** manually:
 
-- 📄 Parsing 50+ page datasheets to verify component compatibility
-- 🔍 Comparing lead times, pricing, and availability across multiple suppliers
-- ⚡ Cross-referencing voltage requirements, pin configurations, and interface protocols
-- 🛒 Building Bill of Materials (BOM) manually
+- Parsing 50+ page datasheets to verify component compatibility
+- Comparing lead times, pricing, and availability across multiple suppliers
+- Cross-referencing voltage requirements, pin configurations, and interface protocols
+- Building Bill of Materials (BOM) manually
 
 **Result**: Days of tedious, error-prone work that could be automated.
 
 ---
 
-## ✨ The Solution
+## The Solution
 
 **Jigsaw** uses **AI agents** powered by **Model Context Protocol (MCP)** to automate the entire PCB design workflow:
 
@@ -46,7 +46,7 @@ Engineers waste **countless hours** manually:
 
 ---
 
-## 🎬 Demo
+## Demo
 
 ### Landing Page
 
@@ -61,24 +61,24 @@ Describe your circuit board in natural language and watch the AI work its magic.
 
 ### Key Features in Action
 
-- 🔄 **Real-time streaming** of component analysis
-- 🎨 **Visual PCB layout** with automatic component placement
-- 🔌 **Smart connections** based on voltage compatibility and interfaces
-- 💬 **Context-aware chat** for design refinement
-- 📊 **Complete BOM** with pricing and supplier information
+- **Real-time streaming** of component analysis
+- **Visual PCB layout** with automatic component placement
+- **Smart connections** based on voltage compatibility and interfaces
+- **Context-aware chat** for design refinement
+- **Complete BOM** with pricing and supplier information
 
 ---
 
-## 🚀 Features
+## Features
 
-### 🤖 AI-Powered Component Analysis
+### AI-Powered Component Analysis
 
 - **Hierarchical reasoning** - AI analyzes components in logical order (MCU → Power → Sensors → Passives)
 - **Real-time updates** - Watch the AI think through component selection
 - **Compatibility validation** - Automatic voltage and interface matching
 - **Supplier integration** - Real-time pricing and availability
 
-### 🎨 Interactive PCB Viewer
+### Interactive PCB Viewer
 
 - **Drag to pan** - Navigate large circuit boards
 - **Scroll to zoom** - Detailed component inspection
@@ -86,14 +86,14 @@ Describe your circuit board in natural language and watch the AI work its magic.
 - **Visual connections** - Color-coded traces (power, data, RF)
 - **Component details** - Hover for specifications
 
-### 💬 Context-Aware MCP Chat
+### Context-Aware MCP Chat
 
 - **Natural language queries** - Describe what you need
 - **Context requests** - AI asks for clarification when needed
 - **Iterative refinement** - Build on previous conversations
 - **Streaming responses** - Real-time feedback
 
-### 📋 Smart Parts List
+### Smart Parts List
 
 - **Automatic BOM generation** - Components added as they're selected
 - **Duplicate prevention** - Smart quantity management
@@ -101,7 +101,7 @@ Describe your circuit board in natural language and watch the AI work its magic.
 - **Pricing information** - Real-time cost calculation
 - **Datasheet links** - Direct access to component documentation
 
-### 🎯 Advanced Features
+### Advanced Features
 
 - **Project persistence** - Save and resume designs
 - **Editable project names** - Organize multiple designs
@@ -111,7 +111,7 @@ Describe your circuit board in natural language and watch the AI work its magic.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 
@@ -140,7 +140,7 @@ Describe your circuit board in natural language and watch the AI work its magic.
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -241,7 +241,7 @@ See `Jigsaw/backend/README.md` for backend setup instructions.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Project Structure
 
@@ -297,7 +297,7 @@ Jigsaw/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### API Documentation
 
@@ -342,7 +342,7 @@ useEffect(() => {
 
 ---
 
-## 🎯 Challenges & Solutions
+## Challenges & Solutions
 
 ### Challenge 1: Real-time Component Analysis
 
@@ -386,7 +386,7 @@ useEffect(() => {
 
 ---
 
-## 🚀 Future Improvements
+## Future Improvements
 
 ### Short-term
 
@@ -406,7 +406,7 @@ useEffect(() => {
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here's how you can help:
 
@@ -439,9 +439,9 @@ Built with ❤️ at **HackPrinceton 2025**
 
 **Team Members:**
 
-- [Your Name] - Frontend Development
-- [Teammate Name] - Backend Development
-- [Teammate Name] - AI/ML Integration
+- Charles Muehlberger
+- Luke Sanborn
+- Phu Duong
 
 **Special Thanks:**
 
@@ -451,38 +451,27 @@ Built with ❤️ at **HackPrinceton 2025**
 
 ---
 
-## 🏆 Awards & Recognition
-
-- 🥇 **Best Use of AI** - HackPrinceton 2025
-- 🥇 **Most Innovative** - HackPrinceton 2025
-- ⭐ **Judges' Choice** - HackPrinceton 2025
+## Awards & Recognition
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/jigsaw/issues)
-- **Email**: your-email@example.com
-- **Discord**: [Join our community](#)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/charlespers/jigsaw/issues)
+- **Email**: charlespers at gmail dot com
 
 ---
 
-## 🙏 Acknowledgments
-
-- **Model Context Protocol** - For standardizing AI agent communication
-- **React Team** - For the amazing framework
-- **Vite Team** - For the blazing-fast build tool
-- **Tailwind CSS** - For the utility-first CSS framework
-- **Radix UI** - For accessible component primitives
+## Acknowledgments
 
 ---
 
 <div align="center">
 
-**Made with ⚡ by the Jigsaw Team**
+**Made by the Jigsaw Team**
 
 [⬆ Back to Top](#-jigsaw)
 
-⭐ **Star us on GitHub** if you find this project helpful!
+**Star us on GitHub** if you find this project helpful!
 
 </div>
