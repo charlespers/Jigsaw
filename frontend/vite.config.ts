@@ -11,4 +11,16 @@ export default defineConfig({
     },
   },
   plugins: [reactRouter(), tsconfigPaths()],
+  build: {
+    sourcemap: false, // Disable sourcemaps to avoid sourcemap resolution errors
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress sourcemap warnings
+        if (warning.message.includes("sourcemap") || warning.message.includes("Can't resolve original location")) {
+          return;
+        }
+        warn(warning);
+      },
+    },
+  },
 });

@@ -4,7 +4,6 @@ import {
   Send,
   X,
   Loader2,
-  MessageSquare,
   AlertCircle,
   CheckCircle2,
   Cpu,

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Package, Download, CheckCircle2, Zap, Cpu, Plug, ExternalLink, Building2 } from "lucide-react";
+import { Package, Download, CheckCircle2, Zap, Cpu, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
