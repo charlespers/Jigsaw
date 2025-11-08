@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import ComponentGraph from "./ComponentGraph";
 import PCBViewer from "./PCBViewer";
 import PartsList from "./PartsList";
-import type { PartObject } from "./PartsList";
+import type { PartObject } from "../services/mcp";
 import MCPChat from "./MCPChat";
 import { useNavigate } from "react-router";
 
@@ -15,6 +16,57 @@ interface DesignInterfaceProps {
 
 export default function DesignInterface({ initialQuery = "" }: DesignInterfaceProps) {
   const navigate = useNavigate();
+  
+  // Project name state with localStorage persistence
+  const [projectName, setProjectName] = useState(() => {
+    const saved = localStorage.getItem("jigsaw-project-name");
+    return saved || "Untitled PCB Design";
+  });
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(projectName);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  
+  // Save project name to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("jigsaw-project-name", projectName);
+  }, [projectName]);
+  
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
+  
+  const handleNameEdit = () => {
+    setIsEditingName(true);
+    setNameInput(projectName);
+  };
+  
+  const handleNameSave = () => {
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      setProjectName(trimmed);
+    } else {
+      setNameInput(projectName); // Reset if empty
+    }
+    setIsEditingName(false);
+  };
+  
+  const handleNameCancel = () => {
+    setNameInput(projectName);
+    setIsEditingName(false);
+  };
+  
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleNameSave();
+    } else if (e.key === "Escape") {
+      handleNameCancel();
+    }
+  };
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalysisPaused, setIsAnalysisPaused] = useState(false);
   const [analysisQuery, setAnalysisQuery] = useState<string>(initialQuery);
@@ -138,10 +190,12 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
       passives: { row: 2, col: 2 }, // Bottom center
     };
 
-    // Grid spacing
-    const gridSpacing = 80; // Space between components
-    const startX = 200; // Starting X position
-    const startY = 150; // Starting Y position
+    // Grid spacing - responsive based on viewport
+    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
+    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1080;
+    const gridSpacing = Math.max(60, Math.min(100, viewportWidth * 0.08)); // 8% of viewport width, clamped
+    const startX = Math.max(150, viewportWidth * 0.15); // 15% of viewport width, minimum 150
+    const startY = Math.max(100, viewportHeight * 0.15); // 15% of viewport height, minimum 100
 
     // Get component type (lowercase for matching)
     const type = componentId.toLowerCase();
@@ -181,8 +235,8 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
       );
       if (existingIndex >= 0) {
         // Part already exists, don't add it again - just keep existing quantity
-        return prev;
-      }
+          return prev;
+        }
       // Add new part at the end
       return [...prev, { ...partData, quantity: partData.quantity || 1 }];
     });
@@ -232,7 +286,43 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
               Back
             </Button>
             <div className="h-4 w-px bg-zinc-700"></div>
-            <h1 className="text-xl">PCB Design Studio</h1>
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={nameInputRef}
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={handleNameKeyDown}
+                  onBlur={handleNameSave}
+                  className="h-8 w-64 bg-zinc-800 border-zinc-700 text-white text-xl px-3"
+                  maxLength={50}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNameSave}
+                  className="h-8 w-8 p-0 text-emerald-400 hover:text-emerald-300"
+                  title="Save">
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNameCancel}
+                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-300"
+                  title="Cancel">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                className="group flex items-center gap-2 cursor-pointer hover:bg-zinc-800/50 rounded px-2 py-1 transition-colors"
+                onClick={handleNameEdit}
+                title="Click to rename project">
+                <h1 className="text-xl text-white">{projectName}</h1>
+                <Pencil className="w-4 h-4 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -265,7 +355,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-80 border-r border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
+          className="w-[20vw] min-w-[280px] max-w-[400px] border-r border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
           <div className="flex-1 overflow-y-auto min-h-0">
             <ComponentGraph
               onComponentSelected={handleComponentSelected}
@@ -315,7 +405,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="w-96 border-l border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
+          className="w-[24vw] min-w-[320px] max-w-[480px] border-l border-zinc-800 bg-zinc-900/30 flex flex-col overflow-hidden h-full">
           <div className="flex-1 overflow-y-auto min-h-0">
             <PartsList parts={parts} />
           </div>

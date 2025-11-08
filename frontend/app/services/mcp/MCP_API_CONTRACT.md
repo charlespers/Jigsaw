@@ -161,11 +161,11 @@ The frontend supports request cancellation via `AbortSignal`. The server should 
 The frontend implementation is located in:
 
 - `app/design/MCPChat.tsx` - Chat UI component
-- `app/design/mcpApi.ts` - API service layer
+- `app/services/mcp/mcpApi.ts` - API service layer
 
 To switch from mock to real API:
 
-1. Open `app/design/mcpApi.ts`
+1. Open `app/services/mcp/mcpApi.ts`
 2. Set `useMock: false` in the `MCPApiService` constructor
 3. Uncomment the `realQuery` and `realContinue` functions
 4. Update the base URL if needed via environment variable `VITE_MCP_SERVER_URL`

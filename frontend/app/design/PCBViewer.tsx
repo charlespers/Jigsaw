@@ -3,7 +3,7 @@ import type React from "react";
 import { motion } from "motion/react";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import type { PartObject } from "./PartsList";
+import type { PartObject } from "../services/mcp";
 
 interface PCBComponent {
   id: string;
@@ -39,18 +39,23 @@ const getComponentColor = (componentId: string): string => {
   return colorMap[componentId.toLowerCase()] || "#10b981";
 };
 
-// Get component size based on type
+// Get component size based on type - responsive to viewport
 const getComponentSize = (componentId: string): { w: number; h: number } => {
+  // Base sizes as proportions of viewport (scaled down for canvas)
+  const baseScale = typeof window !== "undefined" 
+    ? Math.max(0.5, Math.min(1.0, (window.innerWidth + window.innerHeight) / 2000))
+    : 1.0;
+  
   const sizeMap: Record<string, { w: number; h: number }> = {
-    mcu: { w: 60, h: 60 },
-    power: { w: 40, h: 30 },
-    sensors: { w: 35, h: 35 },
-    memory: { w: 40, h: 30 },
-    antenna: { w: 25, h: 25 },
-    passives: { w: 20, h: 20 },
-    connector: { w: 30, h: 20 },
+    mcu: { w: 60 * baseScale, h: 60 * baseScale },
+    power: { w: 40 * baseScale, h: 30 * baseScale },
+    sensors: { w: 35 * baseScale, h: 35 * baseScale },
+    memory: { w: 40 * baseScale, h: 30 * baseScale },
+    antenna: { w: 25 * baseScale, h: 25 * baseScale },
+    passives: { w: 20 * baseScale, h: 20 * baseScale },
+    connector: { w: 30 * baseScale, h: 20 * baseScale },
   };
-  return sizeMap[componentId.toLowerCase()] || { w: 40, h: 40 };
+  return sizeMap[componentId.toLowerCase()] || { w: 40 * baseScale, h: 40 * baseScale };
 };
 
 // Helper to parse voltage range from string (e.g., "3.0V ~ 3.6V" or "5V")

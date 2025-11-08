@@ -170,13 +170,13 @@ The frontend supports request cancellation via `AbortSignal`. The server should 
 The frontend implementation is located in:
 
 - `app/design/ComponentGraph.tsx` - Component analysis UI
-- `app/design/componentAnalysisApi.ts` - API service layer
+- `app/services/mcp/componentAnalysisApi.ts` - API service layer
 - `app/design/PCBViewer.tsx` - PCB visualization
 - `app/design/PartsList.tsx` - Parts display
 
 To switch from mock to real API:
 
-1. Open `app/design/componentAnalysisApi.ts`
+1. Open `app/services/mcp/componentAnalysisApi.ts`
 2. Set `useMock: false` in the `ComponentAnalysisService` constructor
 3. Uncomment the `realStartAnalysis` function
 4. Update the base URL if needed via environment variable `VITE_MCP_SERVER_URL`

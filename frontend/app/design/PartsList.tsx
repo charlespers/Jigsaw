@@ -4,19 +4,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { Card } from "../components/ui/card";
-
-export interface PartObject {
-  mpn: string; // Manufacturer Part Number
-  manufacturer: string;
-  description: string;
-  price: number;
-  currency?: string; // Default: "USD"
-  voltage?: string; // Voltage range (e.g., "3.0V ~ 3.6V")
-  package?: string; // Package type (e.g., "32-QFN")
-  interfaces?: string[]; // Array of interfaces (e.g., ["I2C", "SPI", "UART", "WiFi"])
-  datasheet?: string; // URL to datasheet
-  quantity?: number; // Default: 1
-}
+import type { PartObject } from "../services/mcp";
 
 interface PartsListProps {
   parts?: PartObject[];

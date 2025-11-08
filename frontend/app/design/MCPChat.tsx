@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Badge } from "../components/ui/badge";
-import { mcpApi } from "./mcpApi";
+import { mcpApi } from "../services/mcp";
 import JigsawIcon from "./JigsawIcon";
 
 type ChatState = "idle" | "waiting" | "waiting_for_context" | "error";
@@ -217,7 +217,7 @@ export default function MCPChat({
   };
 
   return (
-    <div className="w-full h-80 bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-900 border-t border-zinc-800/50 flex flex-col overflow-hidden backdrop-blur-xl">
+    <div className="w-full h-[20vh] min-h-[280px] max-h-[400px] bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-900 border-t border-zinc-800/50 flex flex-col overflow-hidden backdrop-blur-xl">
       {/* Header */}
       <div className="px-4 py-3 border-b border-zinc-800/50 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -268,8 +268,8 @@ export default function MCPChat({
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 pt-16">
               <div className="text-center space-y-3 w-full max-w-sm mx-auto">
                 <div className="flex justify-center items-center">
-                  <div className="relative flex items-center justify-center" style={{ width: "96px", height: "96px", overflow: "visible" }}>
-                    <JigsawIcon size={96} className="opacity-40" />
+                  <div className="relative flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 overflow-visible">
+                    <JigsawIcon className="opacity-40 w-full h-full" />
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                       <div className="w-1 h-1 rounded-full bg-emerald-400/60 animate-pulse"></div>
                     </div>

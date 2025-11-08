@@ -12,7 +12,7 @@ import { Badge } from "../components/ui/badge";
 import {
   componentAnalysisApi,
   type ComponentAnalysisResponse,
-} from "./componentAnalysisApi";
+} from "../services/mcp";
 
 interface ComponentGraphProps {
   onComponentSelected?: (componentId: string, partData: any, position?: { x: number; y: number }, hierarchyOffset?: number) => void;

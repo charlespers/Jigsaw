@@ -7,8 +7,10 @@ interface JigsawHeroIconProps {
 
 export default function JigsawIcon({
   className = "",
-  size = 200,
+  size,
 }: JigsawHeroIconProps) {
+  // Default to responsive size if not provided
+  const iconSize = size || (typeof window !== "undefined" ? Math.min(window.innerWidth * 0.12, window.innerHeight * 0.12, 96) : 96);
   // Clean, centered, classic jigsaw piece shape (fits 100×100 box)
   const puzzlePath = `
     M 40 15
@@ -39,8 +41,8 @@ export default function JigsawIcon({
     <div
       className={`relative flex items-center justify-center ${className}`}
       style={{ 
-        width: size, 
-        height: size, 
+        width: iconSize, 
+        height: iconSize, 
         overflow: "visible",
         display: "flex",
         alignItems: "center",
@@ -49,8 +51,8 @@ export default function JigsawIcon({
     >
       {/* Base outline with subtle inner glow */}
       <svg
-        width={size}
-        height={size}
+        width={iconSize}
+        height={iconSize}
         viewBox="0 0 100 100"
         className="absolute"
         style={{ 
@@ -87,8 +89,8 @@ export default function JigsawIcon({
 
       {/* Tracer (orbiting photon with light trail) */}
       <svg
-        width={size}
-        height={size}
+        width={iconSize}
+        height={iconSize}
         viewBox="0 0 100 100"
         className="absolute"
         style={{ 

@@ -7,7 +7,7 @@
  * To integrate with the real MCP server, replace the mock functions with actual implementations.
  */
 
-import type { PartObject } from "./PartsList";
+import type { PartObject } from "./types";
 
 export interface ComponentReasoning {
   componentId: string;
