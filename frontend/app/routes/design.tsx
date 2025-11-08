@@ -1,4 +1,5 @@
-import type { Route } from "./+types/landing";
+import type { Route } from "./+types/design";
+import { useLocation } from "react-router";
 import DesignInterface from "../design/index";
 
 export function meta({}: Route.MetaArgs) {
@@ -13,5 +14,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Design() {
-  return <DesignInterface />;
+  const location = useLocation();
+  const query = (location.state as { query?: string })?.query || "";
+  
+  return <DesignInterface initialQuery={query} />;
 }
