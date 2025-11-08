@@ -48,6 +48,8 @@ Engineers waste **countless hours** manually:
 
 ## Demo
 
+![Demo](liveDemo.gif)
+
 ### Landing Page
 
 Describe your circuit board in natural language and watch the AI work its magic.
@@ -205,7 +207,7 @@ See `Jigsaw/backend/README.md` for backend setup instructions.
 
 ---
 
-## 🎮 Usage
+## Usage
 
 ### Basic Workflow
 
@@ -427,13 +429,13 @@ We welcome contributions! Here's how you can help:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./Jigsaw/LICENSE) file for details.
 
 ---
 
-## 👥 Team
+## Team
 
 Built with ❤️ at **HackPrinceton 2025**
 
