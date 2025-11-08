@@ -58,16 +58,30 @@ vercel --prod
 
 ## Troubleshooting
 
+**404 NOT_FOUND errors:**
+
+If you're getting 404 errors, try these steps:
+
+1. **Remove vercel.json** - The Vercel preset handles everything automatically. Having a vercel.json can interfere.
+
+2. **Check Root Directory** - Ensure `Root Directory` is set to `Jigsaw/frontend` in Vercel project settings
+
+3. **Verify Build Output** - The preset should create serverless functions automatically. Check the build logs to ensure routes are being generated.
+
+4. **Clear Build Cache** - In Vercel project settings, try clearing the build cache and redeploying
+
 **Build fails:**
 
 - Ensure `Root Directory` is set to `Jigsaw/frontend` in Vercel project settings
 - Check that all dependencies are in `package.json`
 - Verify Node.js version (Vercel uses Node 20 by default)
+- Make sure `@vercel/react-router` is installed (it should be in package.json)
 
 **Routing issues:**
 
 - React Router v7 with Vercel preset handles routing automatically
 - All routes should work out of the box
+- If you have a vercel.json, remove it and let the preset handle routing
 
 **Environment variables not working:**
 
