@@ -3,7 +3,7 @@ import LandingPage from "../landing/index";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Jigsaw" },
+    { title: "Jigsaw: Make your PCB click" },
     {
       name: "description",
       content:
