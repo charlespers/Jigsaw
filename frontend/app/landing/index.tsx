@@ -21,7 +21,7 @@ export default function LandingPage() {
 
   const handleChatSubmit = () => {
     if (chatInput.trim()) {
-      navigate("/design");
+      navigate("/design", { state: { query: chatInput.trim() } });
     }
   };
 
