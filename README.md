@@ -48,7 +48,7 @@ Engineers waste **countless hours** manually:
 
 ## Demo
 
-![Demo](liveDemo.gif)
+<img src="./liveDemo.gif" alt="Demo" style="width: 100%; max-width: 800px;">
 
 ### Landing Page
 
