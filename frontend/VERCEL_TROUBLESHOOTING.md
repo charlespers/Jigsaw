@@ -1,6 +1,6 @@
 # Vercel Deployment Troubleshooting
 
-## Issue: Build completes in 84ms (not actually building)
+## Issue: Build completes in 84ms (not actually building)a
 
 If you see "Build Completed in /vercel/output [84ms]", Vercel isn't running your build command.
 
@@ -24,7 +24,7 @@ In Vercel project settings → **Settings → General**:
 
 ### 3. Check Build Logs
 
-After setting Root Directory, check the build logs. You should see:
+After setting Root Directory, check the build logs.
 
 ```
 Running "npm install"
