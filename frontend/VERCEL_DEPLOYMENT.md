@@ -20,9 +20,9 @@ This project is configured for deployment on Vercel using React Router v7 with t
    - **Build Command**: Will use `vercel.json` configuration
    - **Output Directory**: `Jigsaw/frontend/.react-router` (configured in vercel.json)
    - **Install Command**: Will use `vercel.json` configuration
-   
+
    **OR** alternatively:
-   
+
    - **Root Directory**: `Jigsaw/frontend`
    - **Build Command**: `npm run build` (auto-detected)
    - **Output Directory**: Auto-detected by React Router v7
