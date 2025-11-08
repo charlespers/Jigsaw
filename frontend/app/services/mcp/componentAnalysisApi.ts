@@ -438,12 +438,20 @@ async function mockStartAnalysis(
  * REAL API IMPLEMENTATION (commented out - uncomment when MCP server is ready)
  */
 
-/*
+/**
+ * REAL API IMPLEMENTATION - Matches backend requirements:
+ * - Endpoint: POST /mcp/component-analysis
+ * - SSE format: data: <JSON>\n\n
+ * - partData uses PartObject format from types.ts
+ * - Context resume via optional contextQueryId and context parameters
+ */
 async function realStartAnalysis(
   query: string,
   config: ComponentAnalysisConfig,
   onUpdate: (update: ComponentAnalysisResponse) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  contextQueryId?: string,
+  context?: string
 ): Promise<void> {
   const controller = signal ? undefined : new AbortController();
   const abortSignal = signal || controller?.signal;
@@ -453,13 +461,25 @@ async function realStartAnalysis(
     : null;
 
   try {
-    // Use Server-Sent Events or WebSocket for streaming
+    // Build request body with optional context parameters
+    const requestBody: {
+      query: string;
+      contextQueryId?: string;
+      context?: string;
+    } = { query };
+    
+    if (contextQueryId && context) {
+      requestBody.contextQueryId = contextQueryId;
+      requestBody.context = context;
+    }
+
+    // POST to /mcp/component-analysis endpoint
     const response = await fetch(`${config.baseUrl}${config.analysisEndpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(requestBody),
       signal: abortSignal,
     });
 
@@ -469,31 +489,66 @@ async function realStartAnalysis(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // If using Server-Sent Events
+    // Verify Content-Type is text/event-stream for SSE
+    const contentType = response.headers.get("Content-Type");
+    if (!contentType?.includes("text/event-stream")) {
+      console.warn("Expected text/event-stream, got:", contentType);
+    }
+
+    // Parse Server-Sent Events stream
+    // Format: data: <JSON>\n\n
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
 
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    if (!reader) {
+      throw new Error("Response body is not readable");
+    }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+    let buffer = "";
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data: ComponentAnalysisResponse = JSON.parse(line.slice(6));
-              onUpdate(data);
-              
-              if (data.type === "complete" || data.type === "error") {
-                return;
-              }
-            } catch (e) {
-              console.error("Failed to parse SSE data:", e);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // Decode chunk and add to buffer
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE messages (ending with \n\n)
+      let eventEndIndex;
+      while ((eventEndIndex = buffer.indexOf("\n\n")) !== -1) {
+        const eventText = buffer.slice(0, eventEndIndex);
+        buffer = buffer.slice(eventEndIndex + 2);
+
+        // Find data line (format: data: <JSON>)
+        const dataLine = eventText.split("\n").find((line) => line.startsWith("data: "));
+        if (dataLine) {
+          try {
+            // Extract JSON after "data: "
+            const jsonText = dataLine.slice(6); // Remove "data: " prefix
+            const data: ComponentAnalysisResponse = JSON.parse(jsonText);
+            onUpdate(data);
+
+            // Stop on complete or error
+            if (data.type === "complete" || data.type === "error") {
+              return;
             }
+          } catch (e) {
+            console.error("Failed to parse SSE data:", e, "Raw line:", dataLine);
           }
+        }
+      }
+    }
+
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      const dataLine = buffer.split("\n").find((line) => line.startsWith("data: "));
+      if (dataLine) {
+        try {
+          const jsonText = dataLine.slice(6);
+          const data: ComponentAnalysisResponse = JSON.parse(jsonText);
+          onUpdate(data);
+        } catch (e) {
+          console.error("Failed to parse final SSE data:", e);
         }
       }
     }
@@ -505,7 +560,6 @@ async function realStartAnalysis(
     throw error;
   }
 }
-*/
 
 /**
  * Component Analysis API Service
@@ -549,9 +603,8 @@ class ComponentAnalysisService {
       if (this.useMock) {
         await mockStartAnalysis(query, this.config, onUpdate, abortSignal, contextQueryId, context);
       } else {
-        // Uncomment when ready to use real API:
-        // await realStartAnalysis(query, this.config, onUpdate, abortSignal, contextQueryId, context);
-        throw new Error("Real API not yet implemented. Set useMock=true for development.");
+        // Real API implementation - matches backend requirements
+        await realStartAnalysis(query, this.config, onUpdate, abortSignal, contextQueryId, context);
       }
     } catch (error: any) {
       if (error.name === "AbortError" || error.message?.includes("cancelled")) {

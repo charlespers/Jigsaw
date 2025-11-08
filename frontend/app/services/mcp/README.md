@@ -49,14 +49,18 @@ Both API services use environment variables for configuration:
 #### For Component Analysis API (`componentAnalysisApi.ts`):
 
 1. Open `app/services/mcp/componentAnalysisApi.ts`
-2. Find line ~602 (singleton instance):
+2. Find line ~608 (singleton instance):
    ```typescript
    export const componentAnalysisApi = new ComponentAnalysisService(
      { baseUrl: ... },
      true // ← Change to false
    );
    ```
-3. Uncomment the `realStartAnalysis` function (lines ~441-508)
+3. The `realStartAnalysis` function is already implemented and matches backend requirements:
+   - Endpoint: `/mcp/component-analysis`
+   - SSE format: `data: <JSON>\n\n`
+   - partData: Uses `PartObject` format from `types.ts`
+   - Context resume: Supports `contextQueryId` and `context` parameters
 4. The service will automatically use real functions when `useMock: false`
 
 ### Step 3: Verify Your Server Endpoints
@@ -74,8 +78,10 @@ Your MCP server must implement:
    - Response: Same format as query endpoint
 
 3. **POST `/mcp/component-analysis`** - Component analysis endpoint (SSE stream)
-   - Request: `{ query: string }`
+   - Request: `{ query: string, contextQueryId?: string, context?: string }`
    - Response: Server-Sent Events stream with `ComponentAnalysisResponse` objects
+   - SSE Format: `data: <JSON>\n\n` (exactly as specified)
+   - partData: Uses `PartObject` format from `types.ts`
 
 See the contract documentation files for detailed specifications.
 

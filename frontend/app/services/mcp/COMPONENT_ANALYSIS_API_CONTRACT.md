@@ -23,7 +23,9 @@ The component analysis endpoint provides a streaming interface where the MCP ser
 
 ```json
 {
-  "query": "string" // The design requirements/query
+  "query": "string", // The design requirements/query
+  "contextQueryId": "string (optional)", // Query ID if resuming after context was provided
+  "context": "string (optional)" // Context string if resuming after context was provided
 }
 ```
 
@@ -33,18 +35,20 @@ Each event in the stream is a JSON object with the following structure:
 
 ```json
 {
-  "type": "reasoning" | "selection" | "complete" | "error",
+  "type": "reasoning" | "selection" | "complete" | "error" | "context_request",
   "componentId": "string", // Required for reasoning and selection types
   "componentName": "string", // Required for reasoning and selection types
   "reasoning": "string", // Required for reasoning type - snippet of agent reasoning
-  "partData": { // Required for selection type
-    "item_name": "string",
+  "partData": { // Required for selection type - uses PartObject format from types.ts
+    "mpn": "string", // Manufacturer Part Number
+    "manufacturer": "string",
+    "description": "string",
     "price": "number",
-    "pins": "number (optional)",
-    "communication_prot": "string (optional)",
-    "voltage_in": "number (optional)",
-    "current": "number (optional)",
-    "model": "string (optional)",
+    "currency": "string (optional, default: USD)",
+    "voltage": "string (optional)", // e.g., "3.0V ~ 3.6V"
+    "package": "string (optional)", // e.g., "32-QFN"
+    "interfaces": "string[] (optional)", // e.g., ["I2C", "SPI", "UART", "WiFi"]
+    "datasheet": "string (optional)", // URL to datasheet
     "quantity": "number (optional, default: 1)"
   },
   "position": { // Optional for selection type - PCB placement coordinates
@@ -52,7 +56,9 @@ Each event in the stream is a JSON object with the following structure:
     "y": "number"
   },
   "hierarchyLevel": "number (optional)", // Position in component hierarchy
-  "message": "string (optional)" // For complete/error types
+  "message": "string (optional)", // For complete/error/context_request types
+  "queryId": "string (optional)", // Required when type is "context_request"
+  "requestId": "string (optional)" // Alternative field name for queryId
 }
 ```
 
@@ -155,7 +161,7 @@ The frontend supports request cancellation via `AbortSignal`. The server should 
 
 ## Implementation Notes
 
-1. **Streaming**: The endpoint should use Server-Sent Events (SSE) or WebSocket for real-time updates. Each line should be prefixed with `data: ` for SSE.
+1. **Streaming**: The endpoint uses Server-Sent Events (SSE) for real-time updates. Format is exactly `data: <JSON>\n\n` (each event ends with double newline).
 
 2. **Reasoning Snippets**: Multiple reasoning updates may be sent for the same component as the agent thinks through the selection process.
 
@@ -163,7 +169,9 @@ The frontend supports request cancellation via `AbortSignal`. The server should 
 
 4. **Position Coordinates**: If provided, coordinates are relative to the PCB canvas (typically 600x400px viewport).
 
-5. **Part Data**: The `partData` object must match the `PartObject` interface used by the PartsList component.
+5. **Part Data**: The `partData` object must match the `PartObject` interface from `types.ts` (mpn, manufacturer, description, price, currency, voltage, package, interfaces, datasheet, quantity).
+
+6. **Context Resume**: When resuming analysis after providing context, include `contextQueryId` and `context` in the request body. The backend will resume from where it paused.
 
 ## Frontend Integration
 

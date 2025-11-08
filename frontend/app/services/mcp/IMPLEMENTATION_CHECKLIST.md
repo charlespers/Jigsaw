@@ -31,8 +31,8 @@ This checklist ensures your MCP server implementation will work correctly with t
 
 **File**: `app/services/mcp/componentAnalysisApi.ts`
 
-- [ ] Change line ~608: `true` → `false` in `ComponentAnalysisService` constructor
-- [ ] Uncomment `realStartAnalysis` function (lines ~441-508)
+- [ ] Change line ~655: `true` → `false` in `ComponentAnalysisService` constructor
+- [ ] `realStartAnalysis` function is already implemented (lines ~448-562) and matches backend requirements
 - [ ] Test endpoint: `POST /mcp/component-analysis` returns SSE stream
 - [ ] Verify SSE format: `data: <JSON>\n\n`
 
@@ -57,10 +57,11 @@ Your MCP server must implement:
 #### Endpoint 3: Component Analysis (SSE)
 
 - **Path**: `POST /mcp/component-analysis`
-- **Request**: `{ query: string }`
+- **Request**: `{ query: string, contextQueryId?: string, context?: string }`
 - **Response**: Server-Sent Events stream
 - **Content-Type**: `text/event-stream`
-- **Format**: `data: <JSON>\n\n` for each event
+- **Format**: `data: <JSON>\n\n` (exactly - each event ends with double newline)
+- **partData**: Must use `PartObject` format from `types.ts`
 - **Timeout**: 60 seconds
 
 ### 5. Response Format Verification
