@@ -77,7 +77,13 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2">
-              <Cpu className="w-8 h-8 text-emerald-400" />
+              <img
+                src="/logo.png"
+                alt="Jigsaw"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
               <span className="text-2xl tracking-tight">Jigsaw</span>
             </motion.div>
             <motion.div
