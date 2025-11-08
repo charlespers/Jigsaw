@@ -15,10 +15,19 @@ This project is configured for deployment on Vercel using React Router v7 with t
 
 3. **Configure build settings**
 
+   - **Root Directory**: Leave as root (`.`)
+   - The `vercel.json` at the root will handle the build configuration
+   - **Build Command**: Will use `vercel.json` configuration
+   - **Output Directory**: `Jigsaw/frontend/.react-router` (configured in vercel.json)
+   - **Install Command**: Will use `vercel.json` configuration
+   
+   **OR** alternatively:
+   
    - **Root Directory**: `Jigsaw/frontend`
    - **Build Command**: `npm run build` (auto-detected)
    - **Output Directory**: Auto-detected by React Router v7
    - **Install Command**: `npm install` (auto-detected)
+   - In this case, you can delete the root `vercel.json`
 
 4. **Set environment variables**
 
