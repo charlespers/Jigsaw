@@ -108,6 +108,17 @@ npm run dev
 
 Set `VITE_MCP_SERVER_URL` in `.env` for backend integration.
 
+## Deployment
+
+This project is configured for deployment on Vercel. See [VERCEL_DEPLOYMENT.md](./Jigsaw/frontend/VERCEL_DEPLOYMENT.md) for detailed instructions.
+
+**Quick deploy:**
+
+1. Push to GitHub
+2. Import project on Vercel (auto-detects React Router v7)
+3. Set `VITE_MCP_SERVER_URL` environment variable
+4. Deploy
+
 ---
 
 ## Quick Start
