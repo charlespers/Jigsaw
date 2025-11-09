@@ -128,6 +128,68 @@ def parse_component_from_reasoning(reasoning: str) -> Tuple[str, str]:
     return ("unknown", "Component")
 
 
+def transform_raw_to_partobject(raw_component: Dict, additional_fields: Optional[Dict] = None) -> Dict:
+    """
+    Transform raw database row to PartObject format.
+    
+    Args:
+        raw_component: Raw database row with keys like "Part Number", "Manufacturer", etc.
+        additional_fields: Optional additional fields from get_component_details
+    
+    Returns:
+        PartObject dict matching frontend types.ts
+    """
+    # Extract core fields
+    mpn = raw_component.get("Part Number", "").strip()
+    manufacturer = raw_component.get("Manufacturer", "").strip()
+    description = raw_component.get("Description", "").strip()
+    
+    # Parse price (stored as string in database)
+    price_str = raw_component.get("Price", "0")
+    try:
+        price = float(price_str) if price_str else 0.0
+    except (ValueError, TypeError):
+        price = 0.0
+    
+    # Build PartObject
+    part_object: Dict = {
+        "mpn": mpn,
+        "manufacturer": manufacturer,
+        "description": description or f"{manufacturer} {mpn}",
+        "price": price,
+        "currency": "USD",  # Default currency
+        "quantity": 1,
+    }
+    
+    # Add optional fields from core columns
+    device_package = raw_component.get("Device Package")
+    if device_package:
+        part_object["package"] = str(device_package).strip()
+    
+    datasheet = raw_component.get("ComponentLink1URL")
+    if datasheet:
+        part_object["datasheet"] = str(datasheet).strip()
+    
+    # Extract from additional_fields (category-specific columns)
+    if additional_fields:
+        # Look for voltage - try common field names
+        for field in ["Voltage - Supply", "Voltage - Rated", "Operating Voltage", "Supply Voltage"]:
+            if field in additional_fields and additional_fields[field]:
+                part_object["voltage"] = str(additional_fields[field]).strip()
+                break
+        
+        # Look for interfaces - try common field names
+        for field in ["Interface", "Communication Protocol", "Protocol", "Interfaces"]:
+            if field in additional_fields and additional_fields[field]:
+                value = str(additional_fields[field]).strip()
+                # Split comma-separated
+                interfaces = [i.strip() for i in value.split(",")] if "," in value else [value]
+                part_object["interfaces"] = list(set(interfaces))
+                break
+    
+    return part_object
+
+
 @app.route("/mcp/query", methods=["POST"])
 def mcp_query():
     """
@@ -148,10 +210,15 @@ def mcp_query():
 The user wants to design a circuit board with the following requirements:
 {query}
 
+You have access to the Celestial Altium Library database with 132 component tables. Available tools:
+1. list_tables - Get all available component category tables
+2. get_components_in_table - Browse components in a specific table/category
+3. get_component_details - Get full details for a specific component by MPN
+
 Help them by:
 1. Providing recommendations for components
 2. Asking clarifying questions if you need more information about power requirements, interfaces, size constraints, etc.
-3. Using the search_components tool to find compatible parts when you have enough information
+3. Using the database tools to find compatible parts when you have enough information
 
 If you need more information to provide a good recommendation, ask a specific question.
 Otherwise, provide your recommendation."""
@@ -226,7 +293,12 @@ def mcp_continue():
 
 User provided context: {context}
 
-Continue the conversation. If you now have enough information, provide your recommendation using the search_components tool if needed.
+You have access to the Celestial Altium Library database. Available tools:
+1. list_tables - Get all available component category tables
+2. get_components_in_table - Browse components in a specific table/category
+3. get_component_details - Get full details for a specific component by MPN
+
+Continue the conversation. If you now have enough information, provide your recommendation using the database tools if needed.
 If you still need more information, ask another specific question."""
 
         # Call Dedalus SDK
@@ -286,6 +358,18 @@ def mcp_component_analysis():
 
 Context provided: {context}
 
+You have access to the Celestial Altium Library database with 132 component tables. Use these tools:
+1. list_tables - Get all available component category tables
+2. get_components_in_table - Browse components in a specific table/category
+3. get_component_details - Get full details for a specific component by MPN
+
+Workflow for each component:
+1. Use list_tables to see available categories
+2. Identify relevant table (e.g., "Embedded - Microcontrollers" for MCUs)
+3. Use get_components_in_table to browse components in that category
+4. When you find a promising component, use get_component_details with its MPN to get full specs
+5. Select the best component based on specifications
+
 Perform hierarchical component analysis:
 1. Start with core components (microcontroller, power management)
 2. Then supporting components (sensors, memory, antennas)
@@ -293,13 +377,25 @@ Perform hierarchical component analysis:
 
 For each component:
 - Think through requirements (send reasoning updates)
-- Use search_components tool to find compatible parts
+- Browse the database using the tools above
 - Select the best component based on specifications
 
 Output your reasoning as you analyze each component."""
         else:
             prompt = f"""Analyze and select components for this circuit board design: {query}
 
+You have access to the Celestial Altium Library database with 132 component tables. Use these tools:
+1. list_tables - Get all available component category tables
+2. get_components_in_table - Browse components in a specific table/category
+3. get_component_details - Get full details for a specific component by MPN
+
+Workflow for each component:
+1. Use list_tables to see available categories
+2. Identify relevant table (e.g., "Embedded - Microcontrollers" for MCUs)
+3. Use get_components_in_table to browse components in that category
+4. When you find a promising component, use get_component_details with its MPN to get full specs
+5. Select the best component based on specifications
+
 Perform hierarchical component analysis:
 1. Start with core components (microcontroller, power management)
 2. Then supporting components (sensors, memory, antennas)
@@ -307,7 +403,7 @@ Perform hierarchical component analysis:
 
 For each component:
 - Think through requirements (send reasoning updates)
-- Use search_components tool to find compatible parts
+- Browse the database using the tools above
 - Select the best component based on specifications
 
 Output your reasoning as you analyze each component."""
@@ -330,22 +426,19 @@ Output your reasoning as you analyze each component."""
                 bom = load_bom()
                 
                 # Iterate over streaming result
-                # Note: We'll need to inspect the actual structure, but this is a reasonable approach
                 for update in result:
-                    # Convert update to string to inspect
-                    update_str = str(update)
-                    
-                    # Try to extract text/reasoning
+                    # Try to extract text/reasoning from update
+                    text = None
                     if hasattr(update, 'text'):
                         text = update.text
                     elif hasattr(update, 'content'):
                         text = update.content
                     elif isinstance(update, str):
                         text = update
-                    else:
-                        # Try to get any text-like attribute
-                        text = getattr(update, 'delta', getattr(update, 'message', str(update)))
+                    elif hasattr(update, 'delta'):
+                        text = update.delta
                     
+                    # Handle text/reasoning updates
                     if text and text.strip():
                         reasoning_buffer += text
                         
@@ -373,68 +466,54 @@ Output your reasoning as you analyze each component."""
                             'hierarchyLevel': hierarchy_level
                         })}\n\n"
                     
-                    # Check for tool calls/results
-                    # This will need to be adjusted based on actual SDK structure
-                    if hasattr(update, 'tool_call') or 'tool' in update_str.lower():
-                        # Tool is being called - component selection may be coming
-                        pass
+                    # Check for tool results
+                    tool_result = getattr(update, 'tool_result', getattr(update, 'tool_call_result', None))
                     
-                    if hasattr(update, 'tool_result') or 'result' in update_str.lower():
-                        # Try to extract tool result
+                    if tool_result:
                         try:
-                            if hasattr(update, 'result'):
-                                result_data = update.result
-                            elif hasattr(update, 'tool_result'):
-                                result_data = update.tool_result
-                            else:
-                                # Try to parse from string representation
-                                result_data = None
-                            
-                            # If we have result data, try to parse PartObject[]
-                            if result_data:
-                                # Result data might be JSON string or dict
-                                if isinstance(result_data, str):
+                            # Parse MCP tool result - JSON in content[0].text
+                            result_data = None
+                            if isinstance(tool_result, dict) and 'content' in tool_result:
+                                content = tool_result['content']
+                                if isinstance(content, list) and len(content) > 0:
+                                    text = content[0].get('text', '') if isinstance(content[0], dict) else str(content[0])
                                     try:
-                                        result_data = json.loads(result_data)
-                                    except:
+                                        result_data = json.loads(text)
+                                    except json.JSONDecodeError:
                                         pass
+                            elif isinstance(tool_result, dict):
+                                result_data = tool_result
+                            
+                            # Process get_component_details result
+                            if result_data and isinstance(result_data, dict) and 'component' in result_data:
+                                raw_component = result_data['component']
                                 
-                                # Look for component data in result
-                                if isinstance(result_data, dict):
-                                    # Check if this looks like PartObject data
-                                    if 'mpn' in result_data or (isinstance(result_data.get('content'), list) and len(result_data.get('content', [])) > 0):
-                                        # Parse PartObject from result
-                                        if 'content' in result_data:
-                                            # MCP tool result format
-                                            content = result_data['content']
-                                            if isinstance(content, list) and len(content) > 0:
-                                                # First content item might be text with JSON
-                                                text_content = content[0].get('text', '') if isinstance(content[0], dict) else str(content[0])
-                                                try:
-                                                    components = json.loads(text_content)
-                                                    if isinstance(components, list) and len(components) > 0:
-                                                        part_data = components[0]
-                                                        # Validate PartObject format
-                                                        if 'mpn' in part_data and 'manufacturer' in part_data:
-                                                            # Send selection update
-                                                            yield f"data: {json.dumps({
-                                                                'type': 'selection',
-                                                                'componentId': current_component or 'component',
-                                                                'componentName': current_component_name or 'Component',
-                                                                'partData': part_data,
-                                                                'hierarchyLevel': hierarchy_level
-                                                            })}\n\n"
-                                                            
-                                                            # Add to BOM
-                                                            if part_data['mpn'] not in [c.get('mpn') for c in bom]:
-                                                                bom.append(part_data)
-                                                                save_bom(bom)
-                                                            
-                                                            components_selected.append(part_data)
-                                                except:
-                                                    pass
+                                # Split core columns from additional fields
+                                core_columns = ['Part Number', 'Manufacturer', 'Description', 'Price', 'Device Package', 'ComponentLink1URL']
+                                core_component = {k: v for k, v in raw_component.items() if k in core_columns}
+                                additional_fields = {k: v for k, v in raw_component.items() if k not in core_columns and v}
+                                
+                                # Transform to PartObject
+                                part_data = transform_raw_to_partobject(core_component, additional_fields)
+                                
+                                # Send selection if valid
+                                if part_data.get('mpn') and part_data.get('manufacturer'):
+                                    yield f"data: {json.dumps({
+                                        'type': 'selection',
+                                        'componentId': current_component or 'component',
+                                        'componentName': current_component_name or 'Component',
+                                        'partData': part_data,
+                                        'hierarchyLevel': hierarchy_level
+                                    })}\n\n"
+                                    
+                                    # Update BOM
+                                    if part_data['mpn'] not in [c.get('mpn') for c in bom]:
+                                        bom.append(part_data)
+                                        save_bom(bom)
+                                    components_selected.append(part_data)
+                                
                         except Exception as e:
-                            app.logger.debug(f"Error parsing tool result: {e}")
+                            app.logger.error(f"Error parsing tool result: {e}")
                 
                 # Send completion
                 yield f"data: {json.dumps({
