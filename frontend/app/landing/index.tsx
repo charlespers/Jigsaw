@@ -87,7 +87,7 @@ export default function LandingPage() {
       image: pesCharlesImage,
       imageAspect: "aspect-[3/4] md:aspect-[4/5]",
       painPoint:
-        "Charle has to make custom PCBs for every subsystem and he spends over two-months designing them, most of it hunting for compatible parts. We are sick of hearing him complain so we built Jigsaw",
+        "Charles has to make custom PCBs for every subsystem and he spends over two-months designing them, most of it hunting for compatible parts. We are sick of hearing him complain so we built Jigsaw",
       payoff:
         "Jigsaw will auto-check voltages, pinouts, and stock availability so Charles can focus on breaking new speed records.",
       emphasis: "big",
