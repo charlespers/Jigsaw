@@ -1,0 +1,15 @@
+# Ignore source files - only lint compiled JavaScript
+# Dedalus should only analyze dist/ output, not TypeScript source
+src/
+**/*.ts
+**/*.tsx
+tsconfig.json
+node_modules/
+*.log
+.git/
+*.tsbuildinfo
+.eslintrc.json
+.eslintignore
+.dedalusignore
+.npmignore
+

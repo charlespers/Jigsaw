@@ -1,0 +1,22 @@
+# Exclude source files from npm package
+# Only dist/ and necessary files should be included for Dedalus deployment
+# Dedalus will analyze the package contents, so exclude all TypeScript source
+src/
+tsconfig.json
+**/*.ts
+**/*.tsx
+!dist/**/*.js
+node_modules/
+.git/
+.gitignore
+*.log
+*.md
+!README.md
+.eslintrc*
+.eslintignore
+.dedalusignore
+dedalus.config.json
+*.tsbuildinfo
+.vscode/
+.idea/
+

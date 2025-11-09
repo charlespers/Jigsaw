@@ -1,0 +1,23 @@
+{
+  "analysis": {
+    "include": [
+      "dist/**/*.js"
+    ],
+    "exclude": [
+      "src/**/*",
+      "*.ts",
+      "*.tsx",
+      "tsconfig.json",
+      "node_modules/**",
+      "*.log",
+      ".git/**"
+    ],
+    "parser": "javascript",
+    "skipTypeScript": true
+  },
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
+  }
+}
+

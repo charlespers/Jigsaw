@@ -15,12 +15,13 @@ import {
 export function registerCelestialTools(server: McpServer, dbClient: DatabaseClient): void {
   console.log('Registering Celestial MCP tools...');
 
-  // Register tools/list handler
+  // Register tools/list handler with error handling
   server.server.setRequestHandler(
     z.object({
       method: z.literal('tools/list'),
     }),
-    async () => {
+    async (request) => {
+      try {
       return {
         tools: [
           {
@@ -81,6 +82,10 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
           },
         ],
       };
+      } catch (error) {
+        console.error('Error in tools/list handler:', error);
+        throw error;
+      }
     }
   );
   console.log('Tools registered: list_tables, get_components_in_table, get_component_details');
@@ -98,13 +103,17 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
       const { name, arguments: args } = request.params;
 
       try {
+        console.log(`[MCP Tool] Executing tool: ${name} with args:`, JSON.stringify(args, null, 2));
+        
         if (name === 'list_tables') {
           const tables = await dbClient.getTables();
+          const result = { tables };
+          console.log(`[MCP Tool] list_tables returned ${tables.length} tables`);
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({ tables }, null, 2),
+                text: JSON.stringify(result, null, 2),
               },
             ],
           };
@@ -117,7 +126,9 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
             throw new Error('tableName parameter is required and must be a string');
           }
 
+          console.log(`[MCP Tool] get_components_in_table: table=${tableName}, limit=${limit}, offset=${offset}`);
           const result = await dbClient.getComponentsInTable(tableName, limit, offset);
+          console.log(`[MCP Tool] get_components_in_table returned ${result.components.length} components (total: ${result.total})`);
           return {
             content: [
               {
@@ -135,7 +146,9 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
             throw new Error('mpn parameter is required and must be a string');
           }
 
+          console.log(`[MCP Tool] get_component_details: mpn=${mpn}, tableName=${tableName || 'all'}`);
           const result = await dbClient.getComponentDetails(mpn, tableName);
+          console.log(`[MCP Tool] get_component_details found component in table: ${result.tableName}`);
           return {
             content: [
               {
@@ -149,6 +162,7 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
         throw new Error(`Unknown tool: ${name}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[MCP Tool] Error executing ${name}:`, errorMessage);
         throw new Error(`Tool execution failed: ${errorMessage}`);
       }
     }

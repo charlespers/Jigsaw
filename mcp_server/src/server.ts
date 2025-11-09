@@ -25,7 +25,8 @@ export class CelestialServer {
 
     // Register tools
     registerCelestialTools(this.server, this.dbClient);
-    console.log('Celestial MCP Server initialized with tools registered');
+    console.log('✓ Celestial MCP Server initialized with tools registered');
+    console.log('✓ Database connected:', databasePath);
   }
 
   getServer(): McpServer {

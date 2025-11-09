@@ -38,11 +38,25 @@ async function main() {
       await runStdioTransport(server.getServer());
     } else {
       // HTTP transport for production/cloud deployment
+      // Dedalus expects the server to start and listen on the port
       const port = cliOptions.port || config.port;
+      console.log(`Starting Celestial MCP Server on port ${port}...`);
       startHttpTransport({ ...config, port });
+      // Keep process alive
+      process.on('SIGINT', () => {
+        console.log('Received SIGINT, shutting down gracefully...');
+        process.exit(0);
+      });
+      process.on('SIGTERM', () => {
+        console.log('Received SIGTERM, shutting down gracefully...');
+        process.exit(0);
+      });
     }
   } catch (error) {
     console.error('Fatal error running Celestial server:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     process.exit(1);
   }
 }

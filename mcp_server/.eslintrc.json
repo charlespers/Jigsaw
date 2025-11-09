@@ -1,0 +1,35 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "ignorePatterns": [
+    "src/**/*",
+    "**/*.ts",
+    "**/*.tsx",
+    "tsconfig.json",
+    "node_modules/**",
+    "*.log",
+    ".git/**",
+    "*.tsbuildinfo"
+  ],
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off"
+  },
+  "overrides": [
+    {
+      "files": ["dist/**/*.js"],
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+      }
+    }
+  ]
+}
+

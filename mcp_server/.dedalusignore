@@ -1,0 +1,16 @@
+# Dedalus ignore file - exclude source files from validation
+# Dedalus should ONLY analyze compiled JavaScript in dist/, not TypeScript source
+src/
+**/*.ts
+**/*.tsx
+tsconfig.json
+.eslintrc*
+.eslintignore
+*.tsbuildinfo
+.git/
+.vscode/
+.idea/
+*.log
+# Only analyze dist/ output
+!dist/**/*.js
+

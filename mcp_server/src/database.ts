@@ -13,8 +13,13 @@ export class DatabaseClient {
   constructor(databasePath: string) {
     try {
       this.db = new Database(databasePath, { readonly: true });
-      console.log(`Connected to database: ${databasePath}`);
+      console.log(`✓ Connected to database: ${databasePath}`);
+      // Verify database is accessible
+      const testStmt = this.db.prepare('SELECT COUNT(*) as count FROM sqlite_master WHERE type="table"');
+      const result = testStmt.get() as { count: number };
+      console.log(`✓ Database contains ${result.count} tables`);
     } catch (error) {
+      console.error(`✗ Failed to connect to database: ${databasePath}`);
       throw new Error(`Failed to connect to database: ${error instanceof Error ? error.message : String(error)}`);
     }
   }

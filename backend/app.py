@@ -12,28 +12,78 @@ from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
 from dedalus_labs import Dedalus, DedalusRunner
+import dedalus_labs
 
 # Load environment variables
-load_dotenv()
+# Try to load from current directory first, then parent directory
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if not os.path.exists(env_path):
+    # Try parent directory
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+# Force reload - override=True ensures we use .env file values over system env vars
+load_dotenv(env_path if os.path.exists(env_path) else None, override=True)
 
 app = Flask(__name__)
 CORS(app)
 
 # Configuration
-DEDALUS_API_KEY = os.getenv("DEDALUS_API_KEY")
-MCP_SERVER_REGISTRY_ID = os.getenv("MCP_SERVER_REGISTRY_ID")
+# Read directly from .env file to ensure we get the correct value
+DEDALUS_API_KEY = os.getenv("DEDALUS_API_KEY", "").strip()  # Strip whitespace/newlines
+MCP_SERVER_REGISTRY_ID = os.getenv("MCP_SERVER_REGISTRY_ID", "").strip()
 PORT = int(os.getenv("PORT", "3001"))
 MODEL = os.getenv("MODEL", "openai/gpt-5")
 
+# Debug: Log what key we're actually using (first/last few chars only)
+if DEDALUS_API_KEY:
+    key_preview = f"{DEDALUS_API_KEY[:15]}...{DEDALUS_API_KEY[-10:]}" if len(DEDALUS_API_KEY) > 25 else DEDALUS_API_KEY
+    print(f"DEBUG: Using API key: {key_preview} (length: {len(DEDALUS_API_KEY)})")
+else:
+    print("DEBUG: DEDALUS_API_KEY is empty or not set!")
+
 # Validate required environment variables
 if not DEDALUS_API_KEY:
+    print("ERROR: DEDALUS_API_KEY not found in environment variables")
+    print(f"Looking for .env file at: {env_path}")
+    print("Make sure .env file exists in Jigsaw/backend/ with DEDALUS_API_KEY=your_key")
     raise ValueError("DEDALUS_API_KEY environment variable is required")
 if not MCP_SERVER_REGISTRY_ID:
+    print("ERROR: MCP_SERVER_REGISTRY_ID not found in environment variables")
     raise ValueError("MCP_SERVER_REGISTRY_ID environment variable is required")
 
-# Initialize Dedalus client
-dedalus_client = Dedalus()
-dedalus_runner = DedalusRunner(dedalus_client)
+# Log that API key was loaded (but don't print the actual key for security)
+print(f"✓ DEDALUS_API_KEY loaded (length: {len(DEDALUS_API_KEY) if DEDALUS_API_KEY else 0} characters)")
+print(f"✓ MCP_SERVER_REGISTRY_ID: {MCP_SERVER_REGISTRY_ID}")
+
+# Initialize Dedalus client with API key
+# IMPORTANT: Pass api_key explicitly to ensure we use the value from .env file
+# Also set it as environment variable as fallback (some SDK versions read from env)
+try:
+    # Verify key format before initializing
+    if not DEDALUS_API_KEY.startswith("dsk_"):
+        raise ValueError(f"Invalid API key format. Expected to start with 'dsk_', got: {DEDALUS_API_KEY[:10]}...")
+    
+    # Set environment variable as well (some SDK versions may read from env)
+    os.environ['DEDALUS_API_KEY'] = DEDALUS_API_KEY
+    
+    # Initialize with explicit api_key parameter (preferred method)
+    # Try both patterns: explicit parameter and environment variable
+    try:
+        dedalus_client = Dedalus(api_key=DEDALUS_API_KEY)
+    except TypeError:
+        # If api_key parameter doesn't work, try without (reads from env)
+        print("Warning: api_key parameter not accepted, trying environment variable...")
+        dedalus_client = Dedalus()
+    
+    dedalus_runner = DedalusRunner(dedalus_client)
+    print("✓ Dedalus client initialized successfully")
+    print(f"✓ Using API key: {DEDALUS_API_KEY[:15]}...{DEDALUS_API_KEY[-5:]} (length: {len(DEDALUS_API_KEY)})")
+    print(f"✓ SDK version: {getattr(dedalus_labs, '__version__', 'unknown')}")
+except Exception as e:
+    print(f"ERROR: Failed to initialize Dedalus client: {e}")
+    print(f"ERROR: API key being used: {DEDALUS_API_KEY[:20] if DEDALUS_API_KEY else 'NONE'}...")
+    import traceback
+    print(f"ERROR: Traceback: {traceback.format_exc()}")
+    raise
 
 # In-memory state management
 # Structure: {queryId: {query: str, messages: List[str], status: str}}
@@ -198,6 +248,11 @@ def mcp_query():
     Response: {type: "response"|"context_request", queryId?: string, message: string}
     """
     try:
+        # Verify API key is still valid before processing
+        if not DEDALUS_API_KEY or len(DEDALUS_API_KEY) < 10:
+            app.logger.error("DEDALUS_API_KEY is missing or too short")
+            return jsonify({"error": "API key not configured", "code": "CONFIG_ERROR"}), 500
+        
         data = request.get_json()
         if not data or "query" not in data:
             return jsonify({"error": "Missing 'query' field"}), 400
@@ -223,13 +278,34 @@ Help them by:
 If you need more information to provide a good recommendation, ask a specific question.
 Otherwise, provide your recommendation."""
 
-        # Call Dedalus SDK
-        result = dedalus_runner.run(
-            input=prompt,
-            model=MODEL,
-            mcp_servers=[MCP_SERVER_REGISTRY_ID],
-            stream=False
-        )
+        # Call Dedalus SDK with error handling
+        try:
+            result = dedalus_runner.run(
+                input=prompt,
+                model=MODEL,
+                mcp_servers=[MCP_SERVER_REGISTRY_ID],
+                stream=False
+            )
+        except Exception as dedalus_error:
+            error_msg = str(dedalus_error)
+            app.logger.error(f"Dedalus API error: {error_msg}")
+            # Check if it's an authentication error
+            if "401" in error_msg or "invalid_api_key" in error_msg.lower() or "inactive" in error_msg.lower():
+                # Log key info for debugging (first/last few chars only for security)
+                key_preview = f"{DEDALUS_API_KEY[:10]}...{DEDALUS_API_KEY[-5:]}" if len(DEDALUS_API_KEY) > 15 else "TOO_SHORT"
+                app.logger.error(f"API Key authentication failed. Key length: {len(DEDALUS_API_KEY)}, Preview: {key_preview}")
+                app.logger.error(f"Full error from Dedalus: {error_msg}")
+                app.logger.error("Possible causes:")
+                app.logger.error("  1. API key is inactive or expired in Dedalus dashboard")
+                app.logger.error("  2. API key has incorrect format (should start with 'dsk_')")
+                app.logger.error("  3. API key has extra whitespace or newlines in .env file")
+                app.logger.error("  4. Wrong .env file is being loaded")
+                return jsonify({
+                    "error": f"Authentication failed: {error_msg}",
+                    "code": "AUTH_ERROR",
+                    "details": "The API key may be inactive, expired, or incorrect. Please verify it in your Dedalus Labs dashboard and check the backend logs for more details."
+                }), 401
+            raise
         
         response_text = result.final_output
         
@@ -247,12 +323,15 @@ Otherwise, provide your recommendation."""
             return jsonify({
                 "type": "context_request",
                 "queryId": query_id,
-                "message": response_text
+                "requestId": query_id,  # Alternative field name for compatibility
+                "message": response_text,
+                "response": response_text  # Alternative field name for compatibility
             }), 200
         else:
             return jsonify({
                 "type": "response",
-                "message": response_text
+                "message": response_text,
+                "response": response_text  # Alternative field name for compatibility
             }), 200
             
     except Exception as e:
@@ -322,12 +401,15 @@ If you still need more information, ask another specific question."""
             return jsonify({
                 "type": "context_request",
                 "queryId": query_id,
-                "message": response_text
+                "requestId": query_id,  # Alternative field name for compatibility
+                "message": response_text,
+                "response": response_text  # Alternative field name for compatibility
             }), 200
         else:
             return jsonify({
                 "type": "response",
-                "message": response_text
+                "message": response_text,
+                "response": response_text  # Alternative field name for compatibility
             }), 200
             
     except Exception as e:
@@ -343,6 +425,11 @@ def mcp_component_analysis():
     Response: SSE stream with reasoning, selection, complete, error, context_request events
     """
     try:
+        # Verify API key before processing
+        if not DEDALUS_API_KEY or len(DEDALUS_API_KEY) < 10:
+            app.logger.error("DEDALUS_API_KEY is missing or too short")
+            return jsonify({"error": "API key not configured", "code": "CONFIG_ERROR"}), 500
+        
         data = request.get_json()
         if not data or "query" not in data:
             return jsonify({"error": "Missing 'query' field"}), 400
@@ -410,13 +497,46 @@ Output your reasoning as you analyze each component."""
 
         def generate():
             try:
-                # Run with streaming
-                result = dedalus_runner.run(
-                    input=prompt,
-                    model=MODEL,
-                    mcp_servers=[MCP_SERVER_REGISTRY_ID],
-                    stream=True
-                )
+                # Send initial message to indicate stream started
+                app.logger.info(f"Starting component analysis stream for query: {query[:50]}...")
+                yield f"data: {json.dumps({
+                    'type': 'reasoning',
+                    'componentId': 'system',
+                    'componentName': 'System',
+                    'reasoning': 'Starting component analysis...',
+                    'hierarchyLevel': -1
+                })}\n\n"
+                
+                # Run with streaming - catch authentication errors
+                try:
+                    app.logger.info(f"Calling Dedalus runner with MCP server: {MCP_SERVER_REGISTRY_ID}")
+                    result = dedalus_runner.run(
+                        input=prompt,
+                        model=MODEL,
+                        mcp_servers=[MCP_SERVER_REGISTRY_ID],
+                        stream=True
+                    )
+                    app.logger.info("Dedalus runner returned, iterating over stream...")
+                except Exception as dedalus_error:
+                    error_msg = str(dedalus_error)
+                    app.logger.error(f"Dedalus API error in component-analysis: {error_msg}")
+                    # Check if it's an authentication error
+                    if "401" in error_msg or "invalid_api_key" in error_msg.lower() or "inactive" in error_msg.lower():
+                        # Log key info for debugging (first/last few chars only for security)
+                        key_preview = f"{DEDALUS_API_KEY[:10]}...{DEDALUS_API_KEY[-5:]}" if len(DEDALUS_API_KEY) > 15 else "TOO_SHORT"
+                        app.logger.error(f"API Key authentication failed. Key length: {len(DEDALUS_API_KEY)}, Preview: {key_preview}")
+                        app.logger.error(f"Full error from Dedalus: {error_msg}")
+                        app.logger.error("Possible causes:")
+                        app.logger.error("  1. API key is inactive or expired in Dedalus dashboard")
+                        app.logger.error("  2. API key has incorrect format (should start with 'dsk_')")
+                        app.logger.error("  3. API key has extra whitespace or newlines in .env file")
+                        app.logger.error("  4. Wrong .env file is being loaded")
+                        yield f"data: {json.dumps({
+                            'type': 'error',
+                            'message': f'Authentication failed: {error_msg}. Please check your DEDALUS_API_KEY in .env file. The API key may be inactive, expired, or incorrect. Verify it in your Dedalus Labs dashboard.'
+                        })}\n\n"
+                        return
+                    raise
                 
                 current_component = None
                 current_component_name = None
@@ -426,7 +546,12 @@ Output your reasoning as you analyze each component."""
                 bom = load_bom()
                 
                 # Iterate over streaming result
+                update_count = 0
+                app.logger.info("Starting to iterate over Dedalus stream...")
                 for update in result:
+                    update_count += 1
+                    if update_count % 10 == 0:
+                        app.logger.info(f"Processed {update_count} stream updates...")
                     # Try to extract text/reasoning from update
                     text = None
                     if hasattr(update, 'text'):
@@ -441,6 +566,20 @@ Output your reasoning as you analyze each component."""
                     # Handle text/reasoning updates
                     if text and text.strip():
                         reasoning_buffer += text
+                        
+                        # Check if this is a context request (before processing as reasoning)
+                        # Look for question patterns in the accumulated reasoning
+                        if detect_context_request(reasoning_buffer):
+                            # Send context request and stop streaming
+                            query_id = f"analysis_context_{uuid.uuid4().hex[:12]}"
+                            yield f"data: {json.dumps({
+                                'type': 'context_request',
+                                'queryId': query_id,
+                                'requestId': query_id,  # Alternative field name for compatibility
+                                'message': reasoning_buffer.strip(),
+                                'response': reasoning_buffer.strip()  # Alternative field name
+                            })}\n\n"
+                            return  # Stop streaming, wait for context
                         
                         # Update current component from reasoning
                         comp_id, comp_name = parse_component_from_reasoning(reasoning_buffer)
@@ -516,27 +655,34 @@ Output your reasoning as you analyze each component."""
                             app.logger.error(f"Error parsing tool result: {e}")
                 
                 # Send completion
+                app.logger.info(f"Component analysis complete. Selected {len(components_selected)} components.")
                 yield f"data: {json.dumps({
                     'type': 'complete',
                     'message': f'Component analysis complete. Selected {len(components_selected)} components.'
                 })}\n\n"
                 
             except Exception as e:
+                import traceback
                 app.logger.error(f"Error in component analysis stream: {str(e)}")
+                app.logger.error(f"Traceback: {traceback.format_exc()}")
                 yield f"data: {json.dumps({
                     'type': 'error',
                     'message': f'Analysis failed: {str(e)}'
                 })}\n\n"
         
-        return Response(
+        app.logger.info(f"Returning SSE response for component analysis")
+        response = Response(
             stream_with_context(generate()),
             mimetype='text/event-stream',
             headers={
                 'Cache-Control': 'no-cache',
                 'Connection': 'keep-alive',
-                'X-Accel-Buffering': 'no'
+                'X-Accel-Buffering': 'no',
+                'Access-Control-Allow-Origin': '*',  # Ensure CORS for SSE
+                'Access-Control-Allow-Headers': 'Content-Type'
             }
         )
+        return response
         
     except Exception as e:
         app.logger.error(f"Error in /mcp/component-analysis: {str(e)}")
@@ -546,7 +692,16 @@ Output your reasoning as you analyze each component."""
 @app.route("/health", methods=["GET"])
 def health():
     """Health check endpoint."""
-    return jsonify({"status": "healthy"}), 200
+    return jsonify({
+        "status": "healthy",
+        "api_key_configured": bool(DEDALUS_API_KEY and len(DEDALUS_API_KEY) > 10),
+        "mcp_server_configured": bool(MCP_SERVER_REGISTRY_ID)
+    }), 200
+
+@app.route("/.well-known/<path:path>", methods=["GET", "POST"])
+def well_known(path):
+    """Handle well-known paths (Chrome DevTools, etc.) - return 404 gracefully."""
+    return jsonify({"error": "Not found"}), 404
 
 
 if __name__ == "__main__":

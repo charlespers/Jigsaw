@@ -1,0 +1,18 @@
+# Dedalus Analysis Configuration
+# This file tells Dedalus to only analyze compiled JavaScript, not TypeScript source
+
+# Only analyze compiled output
+include=dist/**/*.js
+
+# Exclude all TypeScript source files
+exclude=src/**/*
+exclude=**/*.ts
+exclude=**/*.tsx
+exclude=tsconfig.json
+
+# Exclude build/config files
+exclude=node_modules/**
+exclude=.git/**
+exclude=*.log
+exclude=*.tsbuildinfo
+

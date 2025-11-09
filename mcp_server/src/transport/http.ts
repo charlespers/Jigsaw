@@ -1,7 +1,7 @@
 /**
  * HTTP transport (streamable) for production/cloud deployment
  */
-import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'http';
 import { randomUUID } from 'crypto';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Config } from '../config.js';
@@ -19,7 +19,7 @@ function createStandaloneServer(databasePath: string): CelestialServer {
 }
 
 export function startHttpTransport(config: Config): void {
-  const httpServer = createServer(async (req, res) => {
+  const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -113,7 +113,7 @@ async function createNewSession(
   const serverInstance = createStandaloneServer(config.databasePath);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
-    onsessioninitialized: (sessionId) => {
+    onsessioninitialized: (sessionId: string) => {
       sessions.set(sessionId, { transport, server: serverInstance });
       console.log('New Celestial session created:', sessionId);
     },
@@ -132,9 +132,27 @@ async function createNewSession(
     console.log('MCP server connected to transport, ready to handle requests');
     await transport.handleRequest(req, res);
   } catch (error) {
-    console.error('Streamable HTTP connection error:', error);
-    res.statusCode = 500;
-    res.end('Internal server error');
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Streamable HTTP connection error:', errorMsg);
+    if (errorStack) {
+      console.error('Stack trace:', errorStack);
+    }
+    // Check if it's a validation error
+    if (errorMsg.includes('validation') || errorMsg.includes('ZodError') || errorMsg.includes('Invalid')) {
+      console.error('Validation error detected - check request format and tool schemas');
+      res.statusCode = 400;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ 
+        error: 'Validation error', 
+        message: errorMsg,
+        hint: 'Check that request matches MCP protocol format'
+      }));
+    } else {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Internal server error', message: errorMsg }));
+    }
   }
 }
 
