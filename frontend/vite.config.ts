@@ -12,7 +12,8 @@ export default defineConfig({
   },
   plugins: [reactRouter(), tsconfigPaths()],
   build: {
-    sourcemap: false, // Disable sourcemaps to avoid sourcemap resolution errors
+    outDir: "dist",
+    sourcemap: false,
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress sourcemap warnings
