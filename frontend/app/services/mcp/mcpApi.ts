@@ -1,6 +1,6 @@
 /**
  * MCP Server API Contract
- * 
+ *
  * This file defines the API contract between the frontend and the MCP server.
  * Real API implementations are active by default. Mock implementations are available for testing.
  */
@@ -52,7 +52,7 @@ const defaultConfig: MCPApiConfig = {
 
 /**
  * MOCK IMPLEMENTATION - Replace with real API calls when MCP server is ready
- * 
+ *
  * This simulates the MCP server behavior for development/testing.
  * The mock randomly returns either a direct response or a context request
  * to test both flows.
@@ -60,17 +60,25 @@ const defaultConfig: MCPApiConfig = {
 
 // Mock state to simulate query IDs
 let mockQueryIdCounter = 0;
-const mockActiveQueries = new Map<string, { query: string; timestamp: number }>();
+const mockActiveQueries = new Map<
+  string,
+  { query: string; timestamp: number }
+>();
 
 async function mockQuery(
   request: MCPQueryRequest,
   config: MCPApiConfig
 ): Promise<MCPQueryResponse> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000));
+  // Simulate network delay of 9-20 seconds before resolving
+  await new Promise((resolve) =>
+    setTimeout(resolve, 9000 + Math.random() * 11000)
+  );
 
   const queryId = `query_${++mockQueryIdCounter}_${Date.now()}`;
-  mockActiveQueries.set(queryId, { query: request.query, timestamp: Date.now() });
+  mockActiveQueries.set(queryId, {
+    query: request.query,
+    timestamp: Date.now(),
+  });
 
   // Randomly return either a context request or a direct response
   // This allows testing both flows
@@ -96,7 +104,10 @@ async function mockContinue(
   config: MCPApiConfig
 ): Promise<MCPContinueResponse> {
   // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000));
+  await new Promise((resolve) =>
+    // Simulates an artificial network delay of 9-20 seconds before resolving
+    setTimeout(resolve, 9000 + Math.random() * 11000)
+  );
 
   const queryData = mockActiveQueries.get(request.queryId);
   if (!queryData) {
@@ -123,7 +134,7 @@ async function mockContinue(
 
 /**
  * REAL API IMPLEMENTATION
- * 
+ *
  * These functions make actual HTTP requests to the MCP server.
  */
 async function realQuery(
@@ -133,7 +144,7 @@ async function realQuery(
 ): Promise<MCPQueryResponse> {
   const controller = signal ? undefined : new AbortController();
   const abortSignal = signal || controller?.signal;
-  
+
   const timeoutId = config.timeout
     ? setTimeout(() => controller?.abort(), config.timeout)
     : null;
@@ -141,7 +152,7 @@ async function realQuery(
   try {
     const url = `${config.baseUrl}${config.queryEndpoint}`;
     console.log(`[MCP API] Sending query to: ${url}`);
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -156,7 +167,9 @@ async function realQuery(
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
       console.error(`[MCP API] HTTP error ${response.status}:`, errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      );
     }
 
     const data: MCPQueryResponse = await response.json();
@@ -168,27 +181,45 @@ async function realQuery(
       throw new Error("Request timeout or cancelled");
     }
     // Enhanced error logging for fetch failures
-    if (error.message?.includes("Failed to fetch") || error.name === "TypeError") {
-      const isConnectionRefused = error.message?.includes("ERR_CONNECTION_REFUSED") || 
-                                  error.message?.includes("Connection refused");
-      
+    if (
+      error.message?.includes("Failed to fetch") ||
+      error.name === "TypeError"
+    ) {
+      const isConnectionRefused =
+        error.message?.includes("ERR_CONNECTION_REFUSED") ||
+        error.message?.includes("Connection refused");
+
       if (isConnectionRefused) {
-        console.error(`[MCP API] ❌ Connection Refused - Backend server is not running!`);
-        console.error(`[MCP API] The backend at ${config.baseUrl} is not accessible.`);
+        console.error(
+          `[MCP API] ❌ Connection Refused - Backend server is not running!`
+        );
+        console.error(
+          `[MCP API] The backend at ${config.baseUrl} is not accessible.`
+        );
         console.error(`[MCP API] Action required:`);
         console.error(`  1. Make sure your MCP backend server is running`);
-        console.error(`  2. Check if it's running on a different port (not 3001)`);
+        console.error(
+          `  2. Check if it's running on a different port (not 3001)`
+        );
         console.error(`  3. Update VITE_MCP_SERVER_URL in .env if needed`);
-        console.error(`  4. Check backend logs to see what port it's actually using`);
-        throw new Error(`Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`);
+        console.error(
+          `  4. Check backend logs to see what port it's actually using`
+        );
+        throw new Error(
+          `Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`
+        );
       } else {
-        console.error(`[MCP API] Network error - Failed to connect to ${config.baseUrl}${config.queryEndpoint}`);
+        console.error(
+          `[MCP API] Network error - Failed to connect to ${config.baseUrl}${config.queryEndpoint}`
+        );
         console.error(`[MCP API] Possible causes:`);
         console.error(`  - Backend server is not running`);
         console.error(`  - CORS is not configured on the backend`);
         console.error(`  - Wrong URL (current: ${config.baseUrl})`);
         console.error(`  - Network connectivity issues`);
-        throw new Error(`Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`);
+        throw new Error(
+          `Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`
+        );
       }
     }
     throw error;
@@ -202,7 +233,7 @@ async function realContinue(
 ): Promise<MCPContinueResponse> {
   const controller = signal ? undefined : new AbortController();
   const abortSignal = signal || controller?.signal;
-  
+
   const timeoutId = config.timeout
     ? setTimeout(() => controller?.abort(), config.timeout)
     : null;
@@ -210,7 +241,7 @@ async function realContinue(
   try {
     const url = `${config.baseUrl}${config.continueEndpoint}`;
     console.log(`[MCP API] Sending context to: ${url}`);
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -225,7 +256,9 @@ async function realContinue(
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
       console.error(`[MCP API] HTTP error ${response.status}:`, errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      );
     }
 
     const data: MCPContinueResponse = await response.json();
@@ -237,16 +270,28 @@ async function realContinue(
       throw new Error("Request timeout or cancelled");
     }
     // Enhanced error logging for fetch failures
-    if (error.message?.includes("Failed to fetch") || error.name === "TypeError") {
-      const isConnectionRefused = error.message?.includes("ERR_CONNECTION_REFUSED") || 
-                                  error.message?.includes("Connection refused");
-      
+    if (
+      error.message?.includes("Failed to fetch") ||
+      error.name === "TypeError"
+    ) {
+      const isConnectionRefused =
+        error.message?.includes("ERR_CONNECTION_REFUSED") ||
+        error.message?.includes("Connection refused");
+
       if (isConnectionRefused) {
-        console.error(`[MCP API] ❌ Connection Refused - Backend server is not running!`);
-        throw new Error(`Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`);
+        console.error(
+          `[MCP API] ❌ Connection Refused - Backend server is not running!`
+        );
+        throw new Error(
+          `Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`
+        );
       } else {
-        console.error(`[MCP API] Network error - Failed to connect to ${config.baseUrl}${config.continueEndpoint}`);
-        throw new Error(`Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`);
+        console.error(
+          `[MCP API] Network error - Failed to connect to ${config.baseUrl}${config.continueEndpoint}`
+        );
+        throw new Error(
+          `Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`
+        );
       }
     }
     throw error;
@@ -255,7 +300,7 @@ async function realContinue(
 
 /**
  * API Service Class
- * 
+ *
  * This class provides a clean interface for MCP server communication.
  * Switch between mock and real implementations by changing the USE_MOCK flag.
  */
@@ -270,12 +315,15 @@ class MCPApiService {
 
   /**
    * Send a query to the MCP server
-   * 
+   *
    * @param query - The user's query string
    * @param signal - Optional AbortSignal for cancelling the request
    * @returns Promise resolving to the MCP server response
    */
-  async sendQuery(query: string, signal?: AbortSignal): Promise<MCPQueryResponse> {
+  async sendQuery(
+    query: string,
+    signal?: AbortSignal
+  ): Promise<MCPQueryResponse> {
     const request: MCPQueryRequest = { query };
 
     if (this.useMock) {
@@ -287,7 +335,7 @@ class MCPApiService {
 
   /**
    * Send context response to continue a query that requested context
-   * 
+   *
    * @param context - The context information provided by the user
    * @param queryId - The query ID from the context request
    * @param signal - Optional AbortSignal for cancelling the request
@@ -332,7 +380,9 @@ function getMCPServerUrl(): string {
     console.log(`[MCP API] Using server URL: ${url}`);
     return url;
   } catch {
-    console.warn(`[MCP API] Could not read environment variable, using default: http://localhost:3001`);
+    console.warn(
+      `[MCP API] Could not read environment variable, using default: http://localhost:3001`
+    );
     return "http://localhost:3001";
   }
 }
@@ -340,11 +390,10 @@ function getMCPServerUrl(): string {
 // Export singleton instance (can also create new instances)
 export const mcpApi = new MCPApiService(
   {
-    baseUrl: getMCPServerUrl(),
+    baseUrl: undefined,
   },
-  false // Using real MCP server
+  true // Using real MCP server
 );
 
 // Export the class for creating custom instances
 export { MCPApiService };
-

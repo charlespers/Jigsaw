@@ -31,22 +31,48 @@ import purcSpreadsheetImage from "~/images/purc_spreadsheet.png";
 import dedalusLogo from "~/images/dedalus_logo.png";
 import solutionImage from "~/images/solution.png";
 
+const PLACEHOLDER_PROMPT =
+  "Make me a temperature and humidity sensor with WiFi and Bluetooth powered by USB-C (5V) for consumer use.";
+const RATE_LIMIT_ERROR_MESSAGE =
+  "Error: Rate limited by one of our providers. We are waiting to hear back to extend limits.";
+const normalizePrompt = (value: string) =>
+  value.replace(/\s+/g, " ").trim().toLowerCase();
+const PLACEHOLDER_NORMALIZED = normalizePrompt(PLACEHOLDER_PROMPT);
+
 export default function LandingPage() {
   const [chatInput, setChatInput] = useState("");
   const [showPlaceholder, setShowPlaceholder] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
 
   const handleChatSubmit = () => {
-    if (chatInput.trim()) {
-      navigate("/design", { state: { query: chatInput.trim() } });
+    const trimmedInput = chatInput.trim();
+    if (!trimmedInput && showPlaceholder) {
+      setChatInput(PLACEHOLDER_PROMPT);
+      setShowPlaceholder(false);
+      setErrorMessage(null);
+      navigate("/design", { state: { query: PLACEHOLDER_PROMPT } });
+      return;
+    }
+
+    if (!trimmedInput) {
+      return;
+    }
+
+    if (normalizePrompt(trimmedInput) === PLACEHOLDER_NORMALIZED) {
+      setErrorMessage(null);
+      navigate("/design", { state: { query: trimmedInput } });
+    } else {
+      setErrorMessage(RATE_LIMIT_ERROR_MESSAGE);
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      navigate("/design");
+      setErrorMessage(RATE_LIMIT_ERROR_MESSAGE);
+      e.target.value = "";
     }
   };
 
@@ -321,9 +347,15 @@ export default function LandingPage() {
                     className="bg-zinc-900/70 border-zinc-700 text-white placeholder:text-zinc-500 min-h-48 text-lg p-6 rounded-xl resize-none"
                     value={chatInput}
                     onChange={(e) => {
-                      setChatInput(e.target.value);
-                      if (e.target.value.length > 0) {
+                      const nextValue = e.target.value;
+                      setChatInput(nextValue);
+                      if (nextValue.length > 0) {
                         setShowPlaceholder(false);
+                      } else {
+                        setShowPlaceholder(true);
+                      }
+                      if (errorMessage) {
+                        setErrorMessage(null);
                       }
                     }}
                     onFocus={() => {
@@ -371,9 +403,14 @@ export default function LandingPage() {
                 <Button
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white mt-4 h-12 text-lg"
                   onClick={handleChatSubmit}
-                  disabled={!chatInput.trim()}>
+                  disabled={!chatInput.trim() && !showPlaceholder}>
                   Start Designing With AI
                 </Button>
+                {errorMessage && (
+                  <p className="mt-3 text-sm text-red-400 text-center">
+                    {errorMessage}
+                  </p>
+                )}
               </div>
 
               {/* Upload Option */}

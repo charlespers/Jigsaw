@@ -14,9 +14,11 @@ interface DesignInterfaceProps {
   initialQuery?: string;
 }
 
-export default function DesignInterface({ initialQuery = "" }: DesignInterfaceProps) {
+export default function DesignInterface({
+  initialQuery = "",
+}: DesignInterfaceProps) {
   const navigate = useNavigate();
-  
+
   // Project name state with localStorage persistence
   const [projectName, setProjectName] = useState(() => {
     const saved = localStorage.getItem("jigsaw-project-name");
@@ -25,12 +27,12 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(projectName);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Save project name to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("jigsaw-project-name", projectName);
   }, [projectName]);
-  
+
   // Focus input when editing starts
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {
@@ -38,12 +40,12 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
       nameInputRef.current.select();
     }
   }, [isEditingName]);
-  
+
   const handleNameEdit = () => {
     setIsEditingName(true);
     setNameInput(projectName);
   };
-  
+
   const handleNameSave = () => {
     const trimmed = nameInput.trim();
     if (trimmed) {
@@ -53,12 +55,12 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     }
     setIsEditingName(false);
   };
-  
+
   const handleNameCancel = () => {
     setNameInput(projectName);
     setIsEditingName(false);
   };
-  
+
   const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleNameSave();
@@ -66,13 +68,23 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
       handleNameCancel();
     }
   };
-  
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalysisPaused, setIsAnalysisPaused] = useState(false);
   const [analysisQuery, setAnalysisQuery] = useState<string>(initialQuery);
   const [parts, setParts] = useState<PartObject[]>([]);
   const [selectedComponents, setSelectedComponents] = useState<
-    Map<string, { id: string; label: string; position: { x: number; y: number }; color?: string; size?: { w: number; h: number }; partData?: PartObject }>
+    Map<
+      string,
+      {
+        id: string;
+        label: string;
+        position: { x: number; y: number };
+        color?: string;
+        size?: { w: number; h: number };
+        partData?: PartObject;
+      }
+    >
   >(new Map());
 
   // Track previous query to detect new queries
@@ -80,7 +92,11 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
 
   // Update query when initialQuery changes and auto-start analysis
   useEffect(() => {
-    if (initialQuery && initialQuery.trim() && initialQuery !== previousQueryRef.current) {
+    if (
+      initialQuery &&
+      initialQuery.trim() &&
+      initialQuery !== previousQueryRef.current
+    ) {
       // Reset for new query from landing page
       setParts([]);
       setSelectedComponents(new Map());
@@ -135,7 +151,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
       setIsAnalyzing(true);
     }
   };
-  
+
   // Handle context provided from chat - also resume component analysis if it's waiting
   const handleChatContextProvided = () => {
     // If component analysis is waiting for context, provide it
@@ -159,7 +175,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     // Stop analysis
     setIsAnalyzing(false);
     setIsAnalysisPaused(false);
-    
+
     // Reset all state
     setParts([]);
     setSelectedComponents(new Map());
@@ -168,7 +184,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     setContextMessage("");
     highestHierarchyRef.current = -1;
     previousQueryRef.current = "";
-    
+
     // ComponentGraph will stop and abort when isAnalyzing becomes false
     // The abort controller will be cleaned up in ComponentGraph's useEffect
   };
@@ -176,7 +192,11 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
   // Layout system for organized PCB placement
   const calculateComponentPosition = (
     componentId: string,
-    existingComponents: Array<{ id: string; position: { x: number; y: number }; size?: { w: number; h: number } }>,
+    existingComponents: Array<{
+      id: string;
+      position: { x: number; y: number };
+      size?: { w: number; h: number };
+    }>,
     hierarchyLevel: number
   ): { x: number; y: number } => {
     // Define component types and their preferred positions
@@ -191,8 +211,10 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     };
 
     // Grid spacing - responsive based on viewport
-    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
-    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 1080;
+    const viewportWidth =
+      typeof window !== "undefined" ? window.innerWidth : 1920;
+    const viewportHeight =
+      typeof window !== "undefined" ? window.innerHeight : 1080;
     const gridSpacing = Math.max(60, Math.min(100, viewportWidth * 0.08)); // 8% of viewport width, clamped
     const startX = Math.max(150, viewportWidth * 0.15); // 15% of viewport width, minimum 150
     const startY = Math.max(100, viewportHeight * 0.15); // 15% of viewport height, minimum 100
@@ -214,7 +236,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     const colsPerRow = 4;
     const row = Math.floor(existingCount / colsPerRow);
     const col = existingCount % colsPerRow;
-    
+
     return {
       x: startX + col * gridSpacing,
       y: startY + (row + 3) * gridSpacing, // Start from row 3 for unknown components
@@ -230,13 +252,11 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     // Add to parts list (append to bottom)
     setParts((prev) => {
       // Check if part already exists (by MPN)
-      const existingIndex = prev.findIndex(
-        (p) => p.mpn === partData.mpn
-      );
+      const existingIndex = prev.findIndex((p) => p.mpn === partData.mpn);
       if (existingIndex >= 0) {
         // Part already exists, don't add it again - just keep existing quantity
-          return prev;
-        }
+        return prev;
+      }
       // Add new part at the end
       return [...prev, { ...partData, quantity: partData.quantity || 1 }];
     });
@@ -244,19 +264,19 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
     // Add to PCB viewer with organized grid layout
     setSelectedComponents((prev) => {
       const newMap = new Map(prev);
-      const existingComponents = Array.from(prev.values()).map(c => ({
+      const existingComponents = Array.from(prev.values()).map((c) => ({
         id: c.id,
         position: c.position,
         size: c.size,
       }));
-      
+
       // Calculate organized position based on component type and existing layout
       const organizedPosition = calculateComponentPosition(
         componentId,
         existingComponents,
         hierarchyOffset || 0
       );
-      
+
       newMap.set(componentId, {
         id: componentId,
         label: partData.mpn.split("-")[0] || componentId, // Use first part of MPN as label
@@ -391,7 +411,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
           {/* MCP Chat - fixed height at bottom */}
           <div className="flex-shrink-0 border-t border-zinc-800 overflow-hidden">
             <MCPChat
-              useMock={false}
+              useMock={true}
               onQuerySent={handleQuerySent}
               onContextRequested={handleChatContextRequested}
               onContextProvided={handleChatContextProvided}

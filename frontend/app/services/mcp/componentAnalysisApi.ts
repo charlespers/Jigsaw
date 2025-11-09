@@ -1,6 +1,6 @@
 /**
  * Component Analysis MCP API Contract
- * 
+ *
  * This file defines the API contract for component analysis with the MCP server.
  * Real API implementations are active by default. Mock implementations are available for testing.
  */
@@ -52,7 +52,7 @@ const defaultConfig: ComponentAnalysisConfig = {
 
 /**
  * MOCK IMPLEMENTATION - Replace with real API calls when MCP server is ready
- * 
+ *
  * TESTING FEATURES:
  * - Component-specific reasoning snippets
  * - Realistic part data with proper specs
@@ -64,27 +64,27 @@ const defaultConfig: ComponentAnalysisConfig = {
 // You can modify these values to adjust the mock behavior
 export const MOCK_CONFIG = {
   enableLogging: true, // Set to false to disable console logs
-  reasoningDelay: 600, // Base delay between reasoning snippets (ms) - reduce for faster testing
-  selectionDelay: 800, // Delay before selection (ms) - reduce for faster testing
+  reasoningDelay: 2000, // Base delay between reasoning snippets (ms) - reduce for faster testing
+  selectionDelay: 5000, // Delay before selection (ms) - reduce for faster testing
   reasoningCount: { min: 2, max: 4 }, // Number of reasoning snippets per component
 };
 
 /**
  * TESTING UTILITIES
- * 
+ *
  * To test the mock API:
  * 1. Open browser console (F12)
  * 2. Click "Start Analysis" button in the design interface
  * 3. Watch console logs for detailed reasoning process
  * 4. Observe UI updates in real-time
- * 
+ *
  * To speed up testing:
  * - Set MOCK_CONFIG.reasoningDelay to 200-300ms
  * - Set MOCK_CONFIG.selectionDelay to 300-400ms
- * 
+ *
  * To see more reasoning:
  * - Increase MOCK_CONFIG.reasoningCount.max to 5-6
- * 
+ *
  * To disable console logs:
  * - Set MOCK_CONFIG.enableLogging to false
  */
@@ -104,13 +104,15 @@ const mockComponents = [
     partData: {
       mpn: "ESP32-S3-WROOM-1-N8R2",
       manufacturer: "Espressif Systems",
-      description: "WiFi and Bluetooth 5.0 enabled 32-bit microcontroller with dual-core processor",
+      description:
+        "WiFi and Bluetooth 5.0 enabled 32-bit microcontroller with dual-core processor",
       price: 2.89,
       currency: "USD",
       voltage: "3.0V ~ 3.6V",
       package: "48-QFN",
       interfaces: ["I2C", "SPI", "UART", "WiFi", "Bluetooth 5.0"],
-      datasheet: "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf",
+      datasheet:
+        "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf",
       quantity: 1,
     },
     position: { x: 300, y: 200 },
@@ -152,13 +154,15 @@ const mockComponents = [
     partData: {
       mpn: "BME280",
       manufacturer: "Bosch Sensortec",
-      description: "Digital humidity, pressure and temperature sensor with I2C and SPI interfaces",
+      description:
+        "Digital humidity, pressure and temperature sensor with I2C and SPI interfaces",
       price: 3.95,
       currency: "USD",
       voltage: "1.71V ~ 3.6V",
       package: "LGA-8",
       interfaces: ["I2C", "SPI"],
-      datasheet: "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf",
+      datasheet:
+        "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf",
       quantity: 1,
     },
     position: { x: 400, y: 220 },
@@ -182,7 +186,8 @@ const mockComponents = [
       voltage: "2.7V ~ 3.6V",
       package: "SOIC-8",
       interfaces: ["SPI"],
-      datasheet: "https://www.winbond.com/resource-files/w25q128jv%20revf%2003272018%20plus.pdf",
+      datasheet:
+        "https://www.winbond.com/resource-files/w25q128jv%20revf%2003272018%20plus.pdf",
       quantity: 1,
     },
     position: { x: 300, y: 120 },
@@ -200,7 +205,8 @@ const mockComponents = [
     partData: {
       mpn: "ANT-2.4-CHP-T",
       manufacturer: "Antenova",
-      description: "2.4GHz ceramic chip antenna with 2dBi gain for WiFi and Bluetooth applications",
+      description:
+        "2.4GHz ceramic chip antenna with 2dBi gain for WiFi and Bluetooth applications",
       price: 0.85,
       currency: "USD",
       voltage: "N/A",
@@ -247,7 +253,8 @@ const mockComponents = [
     partData: {
       mpn: "USB4105-GF-A",
       manufacturer: "GCT",
-      description: "USB Type-C connector with 24 pins, USB 2.0 data and 5V power",
+      description:
+        "USB Type-C connector with 24 pins, USB 2.0 data and 5V power",
       price: 0.65,
       currency: "USD",
       voltage: "5V",
@@ -259,6 +266,47 @@ const mockComponents = [
     position: { x: 250, y: 300 },
   },
 ];
+
+const waitWithAbort = (
+  duration: number,
+  signal?: AbortSignal
+): Promise<void> => {
+  if (duration <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (signal) {
+        signal.removeEventListener("abort", onAbort);
+      }
+    };
+
+    const onAbort = () => {
+      cleanup();
+      resolve();
+    };
+
+    if (signal) {
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+    }
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, duration);
+  });
+};
 
 async function mockStartAnalysis(
   query: string,
@@ -276,7 +324,7 @@ async function mockStartAnalysis(
     }
     console.log("Components to analyze:", mockComponents.length);
   }
-  
+
   // Simulate context request (for testing - can be triggered randomly or at specific points)
   // In real implementation, this would come from the MCP server
   if (!contextQueryId && Math.random() < 0.1 && MOCK_CONFIG.enableLogging) {
@@ -286,7 +334,8 @@ async function mockStartAnalysis(
     onUpdate({
       type: "context_request",
       queryId: testQueryId,
-      message: "I need more information about your power requirements. What is your target voltage range?",
+      message:
+        "I need more information about your power requirements. What is your target voltage range?",
     });
     return; // Pause until context is provided
   }
@@ -297,9 +346,9 @@ async function mockStartAnalysis(
     if (signal?.aborted) {
       throw new Error("Analysis cancelled");
     }
-    
+
     const component = mockComponents[i];
-    
+
     if (MOCK_CONFIG.enableLogging) {
       console.group(`📦 ${component.name} (Level ${component.hierarchy})`);
     }
@@ -316,20 +365,9 @@ async function mockStartAnalysis(
       if (signal?.aborted) {
         throw new Error("Analysis cancelled");
       }
-      
-      const delay =
-        MOCK_CONFIG.reasoningDelay + Math.random() * 400; // Add some variance
-      await new Promise<void>((resolve) => {
-        const timeoutId = setTimeout(() => resolve(), delay);
-        // Cancel timeout if aborted
-        if (signal) {
-          signal.addEventListener("abort", () => {
-            clearTimeout(timeoutId);
-            resolve();
-          });
-        }
-      });
-      
+
+      await waitWithAbort(MOCK_CONFIG.reasoningDelay, signal);
+
       // Check again after delay
       if (signal?.aborted) {
         throw new Error("Analysis cancelled");
@@ -342,7 +380,10 @@ async function mockStartAnalysis(
         ];
 
       if (MOCK_CONFIG.enableLogging) {
-        console.log(`💭 Reasoning ${j + 1}/${reasoningCount}:`, reasoningSnippet);
+        console.log(
+          `💭 Reasoning ${j + 1}/${reasoningCount}:`,
+          reasoningSnippet
+        );
       }
 
       onUpdate({
@@ -359,18 +400,9 @@ async function mockStartAnalysis(
     if (signal?.aborted) {
       throw new Error("Analysis cancelled");
     }
-    
-      await new Promise<void>((resolve) => {
-        const timeoutId = setTimeout(() => resolve(), MOCK_CONFIG.selectionDelay);
-        // Cancel timeout if aborted
-        if (signal) {
-          signal.addEventListener("abort", () => {
-            clearTimeout(timeoutId);
-            resolve();
-          });
-        }
-      });
-    
+
+    await waitWithAbort(MOCK_CONFIG.selectionDelay, signal);
+
     // Check again after delay
     if (signal?.aborted) {
       throw new Error("Analysis cancelled");
@@ -379,8 +411,15 @@ async function mockStartAnalysis(
     if (MOCK_CONFIG.enableLogging) {
       console.log("✅ Selected:", component.partData.mpn);
       console.log("   Manufacturer:", component.partData.manufacturer);
-      console.log("   Price:", component.partData.currency || "USD", component.partData.price.toFixed(2));
-      if (component.partData.interfaces && component.partData.interfaces.length > 0) {
+      console.log(
+        "   Price:",
+        component.partData.currency || "USD",
+        component.partData.price.toFixed(2)
+      );
+      if (
+        component.partData.interfaces &&
+        component.partData.interfaces.length > 0
+      ) {
         console.log("   Interfaces:", component.partData.interfaces.join(", "));
       }
     }
@@ -404,18 +443,9 @@ async function mockStartAnalysis(
   if (signal?.aborted) {
     throw new Error("Analysis cancelled");
   }
-  
-  await new Promise<void>((resolve) => {
-    const timeoutId = setTimeout(() => resolve(), 500);
-    // Cancel timeout if aborted
-    if (signal) {
-      signal.addEventListener("abort", () => {
-        clearTimeout(timeoutId);
-        resolve();
-      });
-    }
-  });
-  
+
+  await waitWithAbort(500, signal);
+
   // Check again after delay
   if (signal?.aborted) {
     throw new Error("Analysis cancelled");
@@ -428,7 +458,8 @@ async function mockStartAnalysis(
 
   onUpdate({
     type: "complete",
-    message: "Component analysis complete. All components validated and optimized.",
+    message:
+      "Component analysis complete. All components validated and optimized.",
   });
 }
 
@@ -453,7 +484,7 @@ async function realStartAnalysis(
 ): Promise<void> {
   const controller = signal ? undefined : new AbortController();
   const abortSignal = signal || controller?.signal;
-  
+
   const timeoutId = config.timeout
     ? setTimeout(() => controller?.abort(), config.timeout)
     : null;
@@ -465,7 +496,7 @@ async function realStartAnalysis(
       contextQueryId?: string;
       context?: string;
     } = { query };
-    
+
     if (contextQueryId && context) {
       requestBody.contextQueryId = contextQueryId;
       requestBody.context = context;
@@ -489,8 +520,13 @@ async function realStartAnalysis(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
-      console.error(`[Component Analysis] HTTP error ${response.status}:`, errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      console.error(
+        `[Component Analysis] HTTP error ${response.status}:`,
+        errorText
+      );
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      );
     }
 
     // Verify Content-Type is text/event-stream for SSE
@@ -524,7 +560,9 @@ async function realStartAnalysis(
         buffer = buffer.slice(eventEndIndex + 2);
 
         // Find data line (format: data: <JSON>)
-        const dataLine = eventText.split("\n").find((line) => line.startsWith("data: "));
+        const dataLine = eventText
+          .split("\n")
+          .find((line) => line.startsWith("data: "));
         if (dataLine) {
           try {
             // Extract JSON after "data: "
@@ -537,7 +575,12 @@ async function realStartAnalysis(
               return;
             }
           } catch (e) {
-            console.error("Failed to parse SSE data:", e, "Raw line:", dataLine);
+            console.error(
+              "Failed to parse SSE data:",
+              e,
+              "Raw line:",
+              dataLine
+            );
           }
         }
       }
@@ -545,7 +588,9 @@ async function realStartAnalysis(
 
     // Process any remaining buffer
     if (buffer.trim()) {
-      const dataLine = buffer.split("\n").find((line) => line.startsWith("data: "));
+      const dataLine = buffer
+        .split("\n")
+        .find((line) => line.startsWith("data: "));
       if (dataLine) {
         try {
           const jsonText = dataLine.slice(6);
@@ -562,27 +607,45 @@ async function realStartAnalysis(
       throw new Error("Analysis timeout or cancelled");
     }
     // Enhanced error logging for fetch failures
-    if (error.message?.includes("Failed to fetch") || error.name === "TypeError") {
-      const isConnectionRefused = error.message?.includes("ERR_CONNECTION_REFUSED") || 
-                                  error.message?.includes("Connection refused");
-      
+    if (
+      error.message?.includes("Failed to fetch") ||
+      error.name === "TypeError"
+    ) {
+      const isConnectionRefused =
+        error.message?.includes("ERR_CONNECTION_REFUSED") ||
+        error.message?.includes("Connection refused");
+
       if (isConnectionRefused) {
-        console.error(`[Component Analysis] ❌ Connection Refused - Backend server is not running!`);
-        console.error(`[Component Analysis] The backend at ${config.baseUrl} is not accessible.`);
+        console.error(
+          `[Component Analysis] ❌ Connection Refused - Backend server is not running!`
+        );
+        console.error(
+          `[Component Analysis] The backend at ${config.baseUrl} is not accessible.`
+        );
         console.error(`[Component Analysis] Action required:`);
         console.error(`  1. Make sure your MCP backend server is running`);
-        console.error(`  2. Check if it's running on a different port (not 3001)`);
+        console.error(
+          `  2. Check if it's running on a different port (not 3001)`
+        );
         console.error(`  3. Update VITE_MCP_SERVER_URL in .env if needed`);
-        console.error(`  4. Check backend logs to see what port it's actually using`);
-        throw new Error(`Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`);
+        console.error(
+          `  4. Check backend logs to see what port it's actually using`
+        );
+        throw new Error(
+          `Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`
+        );
       } else {
-        console.error(`[Component Analysis] Network error - Failed to connect to ${config.baseUrl}${config.analysisEndpoint}`);
+        console.error(
+          `[Component Analysis] Network error - Failed to connect to ${config.baseUrl}${config.analysisEndpoint}`
+        );
         console.error(`[Component Analysis] Possible causes:`);
         console.error(`  - Backend server is not running`);
         console.error(`  - CORS is not configured on the backend`);
         console.error(`  - Wrong URL (current: ${config.baseUrl})`);
         console.error(`  - Network connectivity issues`);
-        throw new Error(`Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`);
+        throw new Error(
+          `Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`
+        );
       }
     }
     throw error;
@@ -597,14 +660,17 @@ class ComponentAnalysisService {
   private useMock: boolean;
   private currentAnalysis: AbortController | null = null;
 
-  constructor(config?: Partial<ComponentAnalysisConfig>, useMock: boolean = true) {
+  constructor(
+    config?: Partial<ComponentAnalysisConfig>,
+    useMock: boolean = true
+  ) {
     this.config = { ...defaultConfig, ...config };
     this.useMock = useMock;
   }
 
   /**
    * Start component analysis with real-time updates
-   * 
+   *
    * @param query - The design query/requirements
    * @param onUpdate - Callback function for receiving updates
    * @param signal - Optional AbortSignal for cancelling
@@ -629,10 +695,24 @@ class ComponentAnalysisService {
 
     try {
       if (this.useMock) {
-        await mockStartAnalysis(query, this.config, onUpdate, abortSignal, contextQueryId, context);
+        await mockStartAnalysis(
+          query,
+          this.config,
+          onUpdate,
+          abortSignal,
+          contextQueryId,
+          context
+        );
       } else {
         // Real API implementation - matches backend requirements
-        await realStartAnalysis(query, this.config, onUpdate, abortSignal, contextQueryId, context);
+        await realStartAnalysis(
+          query,
+          this.config,
+          onUpdate,
+          abortSignal,
+          contextQueryId,
+          context
+        );
       }
     } catch (error: any) {
       if (error.name === "AbortError" || error.message?.includes("cancelled")) {
@@ -682,11 +762,13 @@ class ComponentAnalysisService {
 // Export singleton instance
 export const componentAnalysisApi = new ComponentAnalysisService(
   {
-    baseUrl: typeof window !== "undefined" 
-      ? ((import.meta as any).env?.VITE_MCP_SERVER_URL || "http://localhost:3001")
-      : "http://localhost:3001",
+    baseUrl:
+      typeof window !== "undefined"
+        ? (import.meta as any).env?.VITE_MCP_SERVER_URL ||
+          "http://localhost:3001"
+        : "http://localhost:3001",
   },
-  false // Using real MCP server
+  true // Using real MCP server
 );
 
 // Export the class for creating custom instances
@@ -694,20 +776,20 @@ export { ComponentAnalysisService };
 
 /**
  * TESTING HELPER - Available in browser console
- * 
+ *
  * Usage in browser console:
  *   window.testComponentAnalysis("Temperature sensor with WiFi")
- * 
+ *
  * This will run a quick test of the mock API and log results to console.
  */
 if (typeof window !== "undefined") {
   (window as any).testComponentAnalysis = (query: string = "Test query") => {
     console.log("🧪 Running test component analysis...");
     console.log("Query:", query);
-    
+
     let updateCount = 0;
     const updates: ComponentAnalysisResponse[] = [];
-    
+
     componentAnalysisApi
       .startAnalysis(
         query,
@@ -730,9 +812,8 @@ if (typeof window !== "undefined") {
         console.error("❌ Test failed:", error);
       });
   };
-  
+
   console.log(
     "💡 Testing helper available! Type 'window.testComponentAnalysis(\"your query\")' in console to test."
   );
 }
-

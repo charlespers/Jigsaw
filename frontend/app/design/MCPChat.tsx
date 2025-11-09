@@ -1,13 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  Send,
-  X,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Cpu,
-} from "lucide-react";
+import { Send, X, Loader2, AlertCircle, CheckCircle2, Cpu } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { ScrollArea } from "../components/ui/scroll-area";
@@ -33,9 +26,9 @@ interface MCPChatProps {
   onQueryKilled?: () => void; // Callback when query is killed/cancelled (pauses analysis)
 }
 
-export default function MCPChat({ 
-  mcpServerUrl, 
-  useMock = false,
+export default function MCPChat({
+  mcpServerUrl,
+  useMock = true,
   onQuerySent,
   onContextRequested,
   onContextProvided,
@@ -79,14 +72,14 @@ export default function MCPChat({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    
+
     // Reset all state
     setState("idle");
     setContextRequest(null);
     setError(null);
     setMessages([]); // Clear all messages
     setInput(""); // Clear input
-    
+
     // Notify parent to reset everything
     if (onQueryKilled) {
       onQueryKilled();
@@ -122,15 +115,21 @@ export default function MCPChat({
         const queryId = data.queryId || data.requestId || "unknown";
         setContextRequest(queryId);
         setState("waiting_for_context");
-        addMessage("context_request", data.message || "The server is requesting additional context.");
-        
+        addMessage(
+          "context_request",
+          data.message || "The server is requesting additional context."
+        );
+
         // Notify parent to pause analysis again
         if (onContextRequested) {
           onContextRequested();
         }
       } else if (data.type === "response") {
         setState("idle");
-        addMessage("assistant", data.message || data.response || "Query completed.");
+        addMessage(
+          "assistant",
+          data.message || data.response || "Query completed."
+        );
         abortControllerRef.current = null;
       } else {
         setState("idle");
@@ -143,7 +142,10 @@ export default function MCPChat({
       }
       setState("error");
       setError(err.message || "Failed to send context response");
-      addMessage("assistant", `Error: ${err.message || "Failed to send context response"}`);
+      addMessage(
+        "assistant",
+        `Error: ${err.message || "Failed to send context response"}`
+      );
       abortControllerRef.current = null;
     }
   };
@@ -172,15 +174,21 @@ export default function MCPChat({
         const queryId = data.queryId || data.requestId || "unknown";
         setContextRequest(queryId);
         setState("waiting_for_context");
-        addMessage("context_request", data.message || "The server is requesting additional context.");
-        
+        addMessage(
+          "context_request",
+          data.message || "The server is requesting additional context."
+        );
+
         // Notify parent to pause analysis
         if (onContextRequested) {
           onContextRequested();
         }
       } else if (data.type === "response") {
         setState("idle");
-        addMessage("assistant", data.message || data.response || "Query completed.");
+        addMessage(
+          "assistant",
+          data.message || data.response || "Query completed."
+        );
         abortControllerRef.current = null;
       } else {
         setState("idle");
@@ -193,7 +201,10 @@ export default function MCPChat({
       }
       setState("error");
       setError(err.message || "Failed to send query");
-      addMessage("assistant", `Error: ${err.message || "Failed to send query"}`);
+      addMessage(
+        "assistant",
+        `Error: ${err.message || "Failed to send query"}`
+      );
       abortControllerRef.current = null;
     }
   };
@@ -224,7 +235,9 @@ export default function MCPChat({
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
             <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400/30 animate-ping"></div>
           </div>
-          <h3 className="text-sm font-semibold text-zinc-200 tracking-wide">MCP Interface</h3>
+          <h3 className="text-sm font-semibold text-zinc-200 tracking-wide">
+            MCP Interface
+          </h3>
           {useMock && (
             <Badge
               variant="outline"
@@ -274,7 +287,9 @@ export default function MCPChat({
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-zinc-500 font-medium tracking-wide">Ready to analyze components</p>
+                <p className="text-xs text-zinc-500 font-medium tracking-wide">
+                  Ready to analyze components
+                </p>
                 <p className="text-xs text-zinc-600">Send a query to begin</p>
               </div>
             </div>
@@ -311,7 +326,10 @@ export default function MCPChat({
                     {message.content}
                   </p>
                   <p className="text-[10px] mt-1.5 opacity-50 font-mono">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
                 {message.type === "user" && (
@@ -352,13 +370,17 @@ export default function MCPChat({
             <AlertCircle className="w-4 h-4 text-amber-400" />
             <span className="font-medium">Context required</span>
             <span className="text-amber-400/60">•</span>
-            <span className="text-xs text-amber-300/70">Provide additional information below</span>
+            <span className="text-xs text-amber-300/70">
+              Provide additional information below
+            </span>
           </div>
         </motion.div>
       )}
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm flex-shrink-0">
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 border-t border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm flex-shrink-0">
         <div className="flex gap-2.5">
           <Textarea
             ref={inputRef}
@@ -405,4 +427,3 @@ export default function MCPChat({
     </div>
   );
 }
-
