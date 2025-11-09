@@ -325,20 +325,7 @@ async function mockStartAnalysis(
     console.log("Components to analyze:", mockComponents.length);
   }
 
-  // Simulate context request (for testing - can be triggered randomly or at specific points)
-  // In real implementation, this would come from the MCP server
-  if (!contextQueryId && Math.random() < 0.1 && MOCK_CONFIG.enableLogging) {
-    // 10% chance to request context (for testing)
-    // In production, this would be determined by the MCP server
-    const testQueryId = `query_${Date.now()}`;
-    onUpdate({
-      type: "context_request",
-      queryId: testQueryId,
-      message:
-        "I need more information about your power requirements. What is your target voltage range?",
-    });
-    return; // Pause until context is provided
-  }
+  // No forced edge cases - proceed directly with analysis
 
   // Simulate hierarchical reasoning process
   for (let i = 0; i < mockComponents.length; i++) {
@@ -662,7 +649,7 @@ class ComponentAnalysisService {
 
   constructor(
     config?: Partial<ComponentAnalysisConfig>,
-    useMock: boolean = true
+    useMock: boolean = false
   ) {
     this.config = { ...defaultConfig, ...config };
     this.useMock = useMock;
@@ -768,7 +755,7 @@ export const componentAnalysisApi = new ComponentAnalysisService(
           "http://localhost:3001"
         : "http://localhost:3001",
   },
-  true // Using real MCP server
+  false // Using real MCP server
 );
 
 // Export the class for creating custom instances

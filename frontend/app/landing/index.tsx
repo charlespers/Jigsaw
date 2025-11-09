@@ -33,11 +33,6 @@ import solutionImage from "~/images/solution.png";
 
 const PLACEHOLDER_PROMPT =
   "Make me a temperature and humidity sensor with WiFi and Bluetooth powered by USB-C (5V) for consumer use.";
-const RATE_LIMIT_ERROR_MESSAGE =
-  "Error: Rate limited by one of our providers. We are waiting to hear back to extend limits.";
-const normalizePrompt = (value: string) =>
-  value.replace(/\s+/g, " ").trim().toLowerCase();
-const PLACEHOLDER_NORMALIZED = normalizePrompt(PLACEHOLDER_PROMPT);
 
 export default function LandingPage() {
   const [chatInput, setChatInput] = useState("");
@@ -60,18 +55,16 @@ export default function LandingPage() {
       return;
     }
 
-    if (normalizePrompt(trimmedInput) === PLACEHOLDER_NORMALIZED) {
-      setErrorMessage(null);
-      navigate("/design", { state: { query: trimmedInput } });
-    } else {
-      setErrorMessage(RATE_LIMIT_ERROR_MESSAGE);
-    }
+    // Allow any query to proceed - no edge case restrictions
+    setErrorMessage(null);
+    navigate("/design", { state: { query: trimmedInput } });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setErrorMessage(RATE_LIMIT_ERROR_MESSAGE);
+      // File upload functionality can be implemented later
+      // For now, just clear the input without showing an error
       e.target.value = "";
     }
   };

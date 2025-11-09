@@ -69,67 +69,35 @@ async function mockQuery(
   request: MCPQueryRequest,
   config: MCPApiConfig
 ): Promise<MCPQueryResponse> {
-  // Simulate network delay of 9-20 seconds before resolving
-  await new Promise((resolve) =>
-    setTimeout(resolve, 9000 + Math.random() * 11000)
-  );
-
   const queryId = `query_${++mockQueryIdCounter}_${Date.now()}`;
   mockActiveQueries.set(queryId, {
     query: request.query,
     timestamp: Date.now(),
   });
 
-  // Randomly return either a context request or a direct response
-  // This allows testing both flows
-  const shouldRequestContext = Math.random() > 0.5;
-
-  if (shouldRequestContext) {
-    return {
-      type: "context_request",
-      queryId,
-      message: `I need more information to process your query: "${request.query}". Please provide additional context about your requirements.`,
-    };
-  } else {
-    mockActiveQueries.delete(queryId);
-    return {
-      type: "response",
-      message: `Mock response to: "${request.query}". This is a simulated response. The actual MCP server will provide real responses.`,
-    };
-  }
+  // Return a direct response (no forced edge cases)
+  mockActiveQueries.delete(queryId);
+  return {
+    type: "response",
+    message: `Mock response to: "${request.query}". This is a simulated response. The actual MCP server will provide real responses.`,
+  };
 }
 
 async function mockContinue(
   request: MCPContinueRequest,
   config: MCPApiConfig
 ): Promise<MCPContinueResponse> {
-  // Simulate network delay
-  await new Promise((resolve) =>
-    // Simulates an artificial network delay of 9-20 seconds before resolving
-    setTimeout(resolve, 9000 + Math.random() * 11000)
-  );
-
   const queryData = mockActiveQueries.get(request.queryId);
   if (!queryData) {
     throw new Error("Query ID not found. It may have expired.");
   }
 
-  // Randomly return either another context request or a final response
-  const shouldRequestMoreContext = Math.random() > 0.7;
-
-  if (shouldRequestMoreContext) {
-    return {
-      type: "context_request",
-      queryId: request.queryId,
-      message: `Thank you for the context. I need one more piece of information: What is your preferred budget range?`,
-    };
-  } else {
-    mockActiveQueries.delete(request.queryId);
-    return {
-      type: "response",
-      message: `Thank you for providing the context. Based on your query "${queryData.query}" and the context you provided, here is the final response.`,
-    };
-  }
+  // Return a direct response (no forced edge cases)
+  mockActiveQueries.delete(request.queryId);
+  return {
+    type: "response",
+    message: `Thank you for providing the context. Based on your query "${queryData.query}" and the context you provided, here is the final response.`,
+  };
 }
 
 /**
@@ -308,7 +276,7 @@ class MCPApiService {
   private config: MCPApiConfig;
   private useMock: boolean;
 
-  constructor(config?: Partial<MCPApiConfig>, useMock: boolean = true) {
+  constructor(config?: Partial<MCPApiConfig>, useMock: boolean = false) {
     this.config = { ...defaultConfig, ...config };
     this.useMock = useMock;
   }
@@ -390,9 +358,9 @@ function getMCPServerUrl(): string {
 // Export singleton instance (can also create new instances)
 export const mcpApi = new MCPApiService(
   {
-    baseUrl: undefined,
+    baseUrl: getMCPServerUrl(),
   },
-  true // Using real MCP server
+  false // Using real MCP server
 );
 
 // Export the class for creating custom instances

@@ -4,3 +4,4 @@ export default [
   index("routes/landing.tsx"),
   route("design", "routes/design.tsx"),
 ] satisfies RouteConfig;
+

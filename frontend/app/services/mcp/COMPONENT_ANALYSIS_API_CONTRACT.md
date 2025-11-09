@@ -96,13 +96,15 @@ Sent when a component has been selected and validated.
   "componentId": "mcu",
   "componentName": "Microcontroller",
   "partData": {
-    "item_name": "ESP32-S3-WROOM-1",
+    "mpn": "ESP32-S3-WROOM-1-N8R2",
+    "manufacturer": "Espressif Systems",
+    "description": "ESP32-S3-WROOM-1 32-bit MCU with WiFi and Bluetooth",
     "price": 2.89,
-    "pins": 48,
-    "communication_prot": "I2C, SPI, UART",
-    "voltage_in": 3.3,
-    "current": 500,
-    "model": "ESP32-S3-WROOM-1-N8R2",
+    "currency": "USD",
+    "voltage": "3.0V ~ 3.6V",
+    "package": "38-QFN",
+    "interfaces": ["I2C", "SPI", "UART", "WiFi", "Bluetooth"],
+    "datasheet": "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf",
     "quantity": 1
   },
   "position": {

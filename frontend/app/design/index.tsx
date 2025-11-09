@@ -141,11 +141,15 @@ export default function DesignInterface({
 
   // Handle context provided - resume analysis
   const handleAnalysisContextProvided = (context: string, queryId: string) => {
-    // Clear context state and resume
-    setContextQueryId(null);
-    setContextMessage("");
+    // If context is empty, it means analysis completed and we should clear state
+    if (!context && !queryId) {
+      setContextQueryId(null);
+      setContextMessage("");
+      return;
+    }
+    // Keep contextQueryId and contextMessage set so ComponentGraph can use them
+    // They will be cleared after analysis completes
     setIsAnalysisPaused(false);
-    // ComponentGraph will detect contextQueryId cleared and resume
     // Ensure analysis continues with the same query
     if (analysisQuery) {
       setIsAnalyzing(true);
@@ -153,10 +157,15 @@ export default function DesignInterface({
   };
 
   // Handle context provided from chat - also resume component analysis if it's waiting
-  const handleChatContextProvided = () => {
+  const handleChatContextProvided = (context: string, queryId: string) => {
+    // Store the context for component analysis
+    setContextMessage(context);
     // If component analysis is waiting for context, provide it
     if (contextQueryId) {
-      handleAnalysisContextProvided("Context from chat", contextQueryId);
+      handleAnalysisContextProvided(context, contextQueryId);
+    } else {
+      // Chat context request - just resume analysis with the context
+      handleAnalysisContextProvided(context, queryId);
     }
     setIsAnalysisPaused(false);
     if (analysisQuery) {
@@ -165,8 +174,10 @@ export default function DesignInterface({
   };
 
   // Handle context requested from chat - pause analysis
-  const handleChatContextRequested = () => {
+  const handleChatContextRequested = (queryId: string, message: string) => {
     setIsAnalysisPaused(true);
+    setContextQueryId(queryId);
+    setContextMessage(message);
     // ComponentGraph will handle pausing via the isAnalyzing prop
   };
 
@@ -394,6 +405,7 @@ export default function DesignInterface({
               onContextRequested={handleAnalysisContextRequested}
               onContextProvided={handleAnalysisContextProvided}
               contextQueryId={contextQueryId || undefined}
+              contextMessage={contextMessage || undefined}
             />
           </div>
         </motion.div>
@@ -411,7 +423,7 @@ export default function DesignInterface({
           {/* MCP Chat - fixed height at bottom */}
           <div className="flex-shrink-0 border-t border-zinc-800 overflow-hidden">
             <MCPChat
-              useMock={true}
+              useMock={false}
               onQuerySent={handleQuerySent}
               onContextRequested={handleChatContextRequested}
               onContextProvided={handleChatContextProvided}

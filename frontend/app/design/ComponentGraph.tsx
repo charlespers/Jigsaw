@@ -25,6 +25,7 @@ interface ComponentGraphProps {
   onContextRequested?: (queryId: string, message: string) => void; // Callback when MCP requests context during analysis
   onContextProvided?: (context: string, queryId: string) => void; // Callback to provide context and resume analysis
   contextQueryId?: string; // Current context query ID if waiting for context
+  contextMessage?: string; // Actual context message provided by user
 }
 
 interface ComponentNode {
@@ -47,6 +48,7 @@ export default function ComponentGraph({
   onContextRequested,
   onContextProvided,
   contextQueryId,
+  contextMessage,
 }: ComponentGraphProps) {
   const [components, setComponents] = useState<Map<string, ComponentNode>>(
     new Map()
@@ -61,19 +63,21 @@ export default function ComponentGraph({
 
   // Handle context provided - resume analysis
   useEffect(() => {
-    if (contextQueryId && pausedForContextRef.current && onContextProvided) {
-      // Context was provided via chat - resume analysis
+    // When contextQueryId is set and we have contextMessage, it means context was provided
+    // Clear the paused state and let the main effect restart analysis with context
+    if (contextQueryId && contextMessage && pausedForContextRef.current) {
       pausedForContextRef.current = false;
-      contextQueryIdRef.current = null;
+      // Don't clear contextQueryIdRef here - it will be used in the main effect to pass context
+      contextQueryIdRef.current = contextQueryId;
       
       // Resume analysis by continuing with the same query
       if (isAnalyzing && analysisQuery && !isAnalysisRunningRef.current) {
-        // The analysis will resume in the main useEffect
+        // The analysis will resume in the main useEffect with the context
         isAnalysisRunningRef.current = true;
         setIsProcessing(true);
       }
     }
-  }, [contextQueryId, isAnalyzing, analysisQuery, onContextProvided]);
+  }, [contextQueryId, contextMessage, isAnalyzing, analysisQuery]);
 
   useEffect(() => {
     if (!isAnalyzing || !analysisQuery) {
@@ -144,7 +148,7 @@ export default function ComponentGraph({
           
           const existing = newMap.get(update.componentId!) || {
             id: update.componentId!,
-            label: update.componentName || update.componentId,
+            label: update.componentName || update.componentId || "Unknown",
             status: "reasoning" as const,
             reasoning: [] as string[],
             hierarchyLevel: adjustedHierarchy,
@@ -178,7 +182,7 @@ export default function ComponentGraph({
           
           const existing = newMap.get(update.componentId!) || {
             id: update.componentId!,
-            label: update.componentName || update.componentId,
+            label: update.componentName || update.componentId || "Unknown",
             status: "pending" as const,
             reasoning: [] as string[],
             hierarchyLevel: adjustedHierarchy,
@@ -206,6 +210,18 @@ export default function ComponentGraph({
 
           return newMap;
         });
+      } else if (update.type === "context_request") {
+        // MCP server is requesting more context - pause analysis
+        const queryId = update.queryId || update.requestId || `context_${Date.now()}`;
+        contextQueryIdRef.current = queryId;
+        pausedForContextRef.current = true;
+        setIsProcessing(false);
+        isAnalysisRunningRef.current = false;
+        
+        // Notify parent to pause and show context request
+        if (onContextRequested) {
+          onContextRequested(queryId, update.message || "The MCP server needs more information.");
+        }
       } else if (update.type === "complete") {
         setIsProcessing(false);
         isAnalysisRunningRef.current = false;
@@ -220,21 +236,31 @@ export default function ComponentGraph({
     };
 
     // Start analysis with context if resuming
-    const contextId = contextQueryIdRef.current;
+    // Use contextQueryId and contextMessage from props (set by parent when context is provided)
+    const contextId = contextQueryId;
+    const actualContext = contextMessage;
+    
+    // If we have both contextId and contextMessage, we're resuming with context
     componentAnalysisApi
       .startAnalysis(
         analysisQuery,
         handleUpdate,
         abortController.signal,
         contextId || undefined,
-        contextId ? "Context provided" : undefined // In real implementation, pass actual context
+        contextId && actualContext ? actualContext : undefined
       )
       .then(() => {
         // Analysis completed successfully
         setIsProcessing(false);
         isAnalysisRunningRef.current = false;
         pausedForContextRef.current = false;
+        // Clear context refs after successful completion
         contextQueryIdRef.current = null;
+        // Notify parent to clear context state
+        if (onContextProvided && contextQueryId && contextMessage) {
+          // Clear context after successful completion
+          onContextProvided("", "");
+        }
       })
       .catch((error: any) => {
         // Only log if it's not a cancellation

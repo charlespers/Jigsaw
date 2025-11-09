@@ -21,14 +21,14 @@ interface MCPChatProps {
   mcpServerUrl?: string;
   useMock?: boolean; // Allow switching between mock and real API
   onQuerySent?: (query: string) => void; // Callback when query is sent (starts analysis)
-  onContextRequested?: () => void; // Callback when context is requested (pauses analysis)
-  onContextProvided?: () => void; // Callback when context is provided (resumes analysis)
+  onContextRequested?: (queryId: string, message: string) => void; // Callback when context is requested (pauses analysis)
+  onContextProvided?: (context: string, queryId: string) => void; // Callback when context is provided (resumes analysis)
   onQueryKilled?: () => void; // Callback when query is killed/cancelled (pauses analysis)
 }
 
 export default function MCPChat({
   mcpServerUrl,
-  useMock = true,
+  useMock = false,
   onQuerySent,
   onContextRequested,
   onContextProvided,
@@ -97,7 +97,7 @@ export default function MCPChat({
     // Notify parent to resume analysis
     // Pass the context and queryId so component analysis can resume
     if (onContextProvided) {
-      onContextProvided();
+      onContextProvided(contextResponse, currentQueryId);
     }
 
     // Send the context response back to MCP server using API service
@@ -122,7 +122,7 @@ export default function MCPChat({
 
         // Notify parent to pause analysis again
         if (onContextRequested) {
-          onContextRequested();
+          onContextRequested(queryId, data.message || "The server is requesting additional context.");
         }
       } else if (data.type === "response") {
         setState("idle");
@@ -181,7 +181,7 @@ export default function MCPChat({
 
         // Notify parent to pause analysis
         if (onContextRequested) {
-          onContextRequested();
+          onContextRequested(queryId, data.message || "The server is requesting additional context.");
         }
       } else if (data.type === "response") {
         setState("idle");
