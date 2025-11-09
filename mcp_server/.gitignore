@@ -4,9 +4,19 @@ dist/
 npm-debug.log
 yarn-error.log
 
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
 # Environment files
 .env
 *.env
+
+# Logs
+*.log
+logs/
 
 # IDE files
 .vscode/
