@@ -12,7 +12,6 @@ export default defineConfig({
   },
   plugins: [reactRouter(), tsconfigPaths()],
   build: {
-    outDir: "dist",
     sourcemap: false,
     rollupOptions: {
       onwarn(warning, warn) {
