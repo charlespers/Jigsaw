@@ -5,17 +5,17 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { randomUUID } from 'crypto';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Config } from '../config.js';
-import { NexarServer } from '../server.js';
+import { CelestialServer } from '../server.js';
 
 interface Session {
   transport: StreamableHTTPServerTransport;
-  server: NexarServer;
+  server: CelestialServer;
 }
 
 const sessions = new Map<string, Session>();
 
-function createStandaloneServer(clientId: string, clientSecret: string): NexarServer {
-  return new NexarServer(clientId, clientSecret);
+function createStandaloneServer(databasePath: string): CelestialServer {
+  return new CelestialServer(databasePath);
 }
 
 export function startHttpTransport(config: Config): void {
@@ -88,7 +88,7 @@ async function handleSSERequest(
 ): Promise<void> {
   // SSE endpoint for backward compatibility
   // Use streamable HTTP transport instead
-  const serverInstance = createStandaloneServer(config.clientId, config.clientSecret);
+  const serverInstance = createStandaloneServer(config.databasePath);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
   });
@@ -110,19 +110,20 @@ async function createNewSession(
   res: ServerResponse,
   config: Config
 ): Promise<void> {
-  const serverInstance = createStandaloneServer(config.clientId, config.clientSecret);
+  const serverInstance = createStandaloneServer(config.databasePath);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (sessionId) => {
       sessions.set(sessionId, { transport, server: serverInstance });
-      console.log('New Nexar session created:', sessionId);
+      console.log('New Celestial session created:', sessionId);
     },
   });
 
   transport.onclose = () => {
     if (transport.sessionId) {
       sessions.delete(transport.sessionId);
-      console.log('Nexar session closed:', transport.sessionId);
+      serverInstance.close(); // Close database connection
+      console.log('Celestial session closed:', transport.sessionId);
     }
   };
 
@@ -143,7 +144,7 @@ function handleHealthCheck(res: ServerResponse): void {
     JSON.stringify({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      service: 'nexar-mcp',
+      service: 'celestial-mcp',
       version: '0.1.0',
     })
   );
@@ -157,7 +158,7 @@ function handleNotFound(res: ServerResponse): void {
 function logServerStart(config: Config): void {
   const displayUrl = config.isProduction ? `Port ${config.port}` : `http://localhost:${config.port}`;
 
-  console.log(`Nexar MCP Server listening on ${displayUrl}`);
+  console.log(`Celestial MCP Server listening on ${displayUrl}`);
 
   if (!config.isProduction) {
     console.log('Put this in your client config:');
@@ -165,7 +166,7 @@ function logServerStart(config: Config): void {
       JSON.stringify(
         {
           mcpServers: {
-            nexar: {
+            celestial: {
               url: `http://localhost:${config.port}/mcp`,
             },
           },

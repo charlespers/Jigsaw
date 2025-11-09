@@ -2,18 +2,18 @@
  * Server instance creation
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { NexarClient } from './client.js';
-import { registerNexarTools } from './tools/index.js';
+import { DatabaseClient } from './database.js';
+import { registerCelestialTools } from './tools/index.js';
 
-export class NexarServer {
+export class CelestialServer {
   private server: McpServer;
-  private nexarClient: NexarClient;
+  private dbClient: DatabaseClient;
 
-  constructor(clientId: string, clientSecret: string) {
-    this.nexarClient = new NexarClient(clientId, clientSecret);
+  constructor(databasePath: string) {
+    this.dbClient = new DatabaseClient(databasePath);
     this.server = new McpServer(
       {
-        name: 'nexar-mcp',
+        name: 'celestial-mcp',
         version: '0.1.0',
       },
       {
@@ -24,12 +24,19 @@ export class NexarServer {
     );
 
     // Register tools
-    registerNexarTools(this.server, this.nexarClient);
-    console.log('Nexar MCP Server initialized with tools registered');
+    registerCelestialTools(this.server, this.dbClient);
+    console.log('Celestial MCP Server initialized with tools registered');
   }
 
   getServer(): McpServer {
     return this.server;
+  }
+
+  /**
+   * Cleanup: close database connection
+   */
+  close(): void {
+    this.dbClient.close();
   }
 }
 

@@ -34,10 +34,10 @@ export function parseArgs(): CliOptions {
 
 function printHelp(): void {
   console.log(`
-Nexar MCP Server
+Celestial MCP Server
 
 USAGE:
-    nexar-mcp [OPTIONS]
+    celestial-mcp [OPTIONS]
 
 OPTIONS:
     --port <PORT>    Run HTTP server on specified port (default: 8080)
@@ -45,10 +45,9 @@ OPTIONS:
     --help           Print this help message
 
 ENVIRONMENT VARIABLES:
-    NEXAR_CLIENT_ID      Required: Your Nexar client ID
-    NEXAR_CLIENT_SECRET   Required: Your Nexar client secret
-    PORT                 HTTP server port (default: 8080)
-    NODE_ENV            Set to 'production' for production mode
+    DATABASE_PATH    Path to celestial.sqlite3 database (default: ./celestial.sqlite3)
+    PORT             HTTP server port (default: 8080)
+    NODE_ENV         Set to 'production' for production mode
 `);
 }
 

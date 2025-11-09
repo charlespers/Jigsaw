@@ -9,7 +9,7 @@ export async function runStdioTransport(server: McpServer): Promise<void> {
 
   try {
     await server.connect(transport);
-    console.error('Nexar MCP Server running on stdio');
+    console.error('Celestial MCP Server running on stdio');
   } catch (error) {
     console.error('Failed to start STDIO transport:', error);
     throw error;

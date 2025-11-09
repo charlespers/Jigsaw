@@ -1,10 +1,10 @@
 {
-  "name": "nexar-mcp-server",
+  "name": "celestial-mcp-server",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "nexar-mcp": "dist/index.js"
+    "celestial-mcp": "dist/index.js"
   },
   "files": [
     "dist"
@@ -20,11 +20,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.21.1",
-    "axios": "^1.6.0",
+    "better-sqlite3": "^11.0.0",
     "dotenv": "^16.3.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.10.0",
     "shx": "^0.4.0",
     "typescript": "^5.3.0"
