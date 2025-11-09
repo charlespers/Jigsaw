@@ -4,21 +4,32 @@ MCP server that provides `search_components` tool for querying Nexar Supply API.
 
 ## Setup
 
-1. **Install dependencies**:
+1. **Install Git LFS** (if not already installed):
+```bash
+# macOS
+brew install git-lfs
+git lfs install
+
+# Or download from https://git-lfs.github.com/
+```
+
+2. **Install dependencies**:
 ```bash
 npm install
 ```
 
-2. **Set environment variables**:
+3. **Set environment variables**:
 ```bash
-export NEXAR_CLIENT_ID=your_client_id
-export NEXAR_CLIENT_SECRET=your_client_secret
+export DATABASE_PATH=./celestial.sqlite3  # Optional, defaults to ./celestial.sqlite3
+export PORT=8080                          # Optional, defaults to 8080
 ```
 
-3. **Build**:
+4. **Build**:
 ```bash
 npm run build
 ```
+
+**Note**: The `celestial.sqlite3` database file is tracked using Git LFS due to its size (117MB). When cloning the repository, make sure Git LFS is installed and the file will be automatically downloaded.
 
 4. **Run server**:
 ```bash
