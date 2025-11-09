@@ -1,7 +1,7 @@
 /**
  * Nexar tool definitions and handlers
  */
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { NexarClient } from '../client.js';
 import { SearchComponentsArgs } from '../types.js';
@@ -9,9 +9,10 @@ import { SearchComponentsArgs } from '../types.js';
 /**
  * Create and register Nexar tools
  */
-export function registerNexarTools(server: Server, nexarClient: NexarClient): void {
+export function registerNexarTools(server: McpServer, nexarClient: NexarClient): void {
+  console.log('Registering Nexar MCP tools...');
   // Register tools/list handler
-  server.setRequestHandler(
+  server.server.setRequestHandler(
     z.object({
       method: z.literal('tools/list'),
     }),
@@ -43,9 +44,10 @@ export function registerNexarTools(server: Server, nexarClient: NexarClient): vo
       };
     }
   );
+  console.log('Tools registered: search_components');
 
   // Register tools/call handler
-  server.setRequestHandler(
+  server.server.setRequestHandler(
     z.object({
       method: z.literal('tools/call'),
       params: z.object({

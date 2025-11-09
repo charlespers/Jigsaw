@@ -128,6 +128,7 @@ async function createNewSession(
 
   try {
     await serverInstance.getServer().connect(transport);
+    console.log('MCP server connected to transport, ready to handle requests');
     await transport.handleRequest(req, res);
   } catch (error) {
     console.error('Streamable HTTP connection error:', error);

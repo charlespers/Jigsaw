@@ -13,7 +13,6 @@ npm install
 ```bash
 export NEXAR_CLIENT_ID=your_client_id
 export NEXAR_CLIENT_SECRET=your_client_secret
-export PORT=8080  # Optional, default: 8080
 ```
 
 3. **Build**:
