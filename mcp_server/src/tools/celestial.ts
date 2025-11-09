@@ -16,14 +16,15 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
   console.log('Registering Celestial MCP tools...');
 
   // Register tools/list handler with error handling
+  // MCP Protocol: tools/list should return { tools: Tool[] }
   server.server.setRequestHandler(
     z.object({
       method: z.literal('tools/list'),
     }),
     async (request) => {
       try {
-      return {
-        tools: [
+        console.log('[MCP] tools/list request received');
+        const tools = [
           {
             name: 'list_tables',
             description:
@@ -80,10 +81,13 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
               required: ['mpn'],
             },
           },
-        ],
-      };
+        ];
+        console.log(`[MCP] tools/list returning ${tools.length} tools:`, tools.map(t => t.name).join(', '));
+        return {
+          tools,
+        };
       } catch (error) {
-        console.error('Error in tools/list handler:', error);
+        console.error('[MCP] Error in tools/list handler:', error);
         throw error;
       }
     }
@@ -91,6 +95,7 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
   console.log('Tools registered: list_tables, get_components_in_table, get_component_details');
 
   // Register tools/call handler
+  // MCP Protocol: tools/call should return { content: Content[], isError?: boolean }
   server.server.setRequestHandler(
     z.object({
       method: z.literal('tools/call'),
@@ -101,6 +106,7 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
     }),
     async (request) => {
       const { name, arguments: args } = request.params;
+      console.log(`[MCP] tools/call request received for tool: ${name}`);
 
       try {
         console.log(`[MCP Tool] Executing tool: ${name} with args:`, JSON.stringify(args, null, 2));
@@ -163,9 +169,20 @@ export function registerCelestialTools(server: McpServer, dbClient: DatabaseClie
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`[MCP Tool] Error executing ${name}:`, errorMessage);
-        throw new Error(`Tool execution failed: ${errorMessage}`);
+        // Return error in MCP format instead of throwing
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ error: errorMessage }, null, 2),
+            },
+          ],
+          isError: true,
+        };
       }
     }
   );
+  
+  console.log('✓ MCP tool handlers registered successfully');
 }
 
