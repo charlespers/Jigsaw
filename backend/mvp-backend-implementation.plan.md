@@ -1,164 +1,167 @@
-# MVP Backend - Bare Minimum Implementation
+<!-- d438be45-5259-40a9-b94f-3a223858344a ad6601d9-516e-4cab-9f5e-635e65760fa5 -->
+# Minimal MVP Backend Implementation
 
 ## Architecture
 
-Two Python services:
+Two separate components:
 
-1. **MCP Client** (Flask, port 3001)
+1. **MCP Server** (separate project/repo)
 
-   - `/mcp/query` and `/mcp/continue` endpoints (contract requirement)
-   - Uses Dedalus Lab SDK to prompt LLM with MCP Server tools/resources
-   - In-memory query state (queryId tracking)
-   - Writes BOM to `bom.json`
+   - Follows Dedalus Labs guidelines
+   - Single file: `src/main.py` with MCP server + tools
+   - Upload to Dedalus cloud → get registry ID
 
-2. **MCP Server** (Flask, port 3002)
+2. **MCP Client** (backend folder)
 
-   - Single tool: `search_components`
-   - Calls Nexar API
-   - Returns components in BOM format
+   - Single Flask file: `app.py` with all endpoints
+   - Uses Dedalus SDK (~5 lines) to call LLM
+   - Manages state and BOM
 
 ## File Structure
 
 ```
 backend/
-├── mcp_client/
-│   ├── app.py           # Flask: /mcp/query, /mcp/continue
-│   ├── dedalus_service.py # DedalusRunner integration
-│   └── state.py         # Query dict + BOM file write
-├── mcp_server/
-│   ├── server.py        # MCP protocol server (stdio or HTTP)
-│   ├── nexar.py         # Nexar API client
-│   └── tools.py         # search_components tool definition
+├── app.py              # Single Flask file: all 3 endpoints + Dedalus SDK
+├── bom.json            # BOM storage (auto-created)
 ├── requirements.txt
-├── .env.example
+└── README.md
+
+mcp_server/           # Separate project (upload to Dedalus)
+├── src/
+│   └── main.py        # MCP server with search_components tool
+├── requirements.txt
 └── README.md
 ```
 
-## Components
+## MCP Server (`mcp_server/src/main.py`)
 
-**MCP Client (`app.py`)**
+**Purpose**: Define MCP server with tools for Dedalus cloud upload
 
-- `POST /mcp/query`: Get query → DedalusRunner.run(input, model, mcp_servers) → parse response → return response/context_request
-- `POST /mcp/continue`: Get context + queryId → append to conversation → DedalusRunner.run() → return response/context_request
-- HTTP status codes: 200, 400, 404, 500 per contract
+**Structure** (following Dedalus guidelines):
 
-**MCP Client (`dedalus_service.py`)**
+- Use `openmcp` package
+- Define `search_components` tool
+- Tool calls Nexar API internally
+- Returns PartObject format array
+- Uses streamable HTTP transport
 
-- Initialize `AsyncDedalus` client with `DEDALUS_API_KEY`
-- `DedalusRunner` wrapper
-- `process_query(input, conversation_history, mcp_server_url)` → `runner.run(input, model, mcp_servers=[...])` → return `response.final_output`
-- Parse response to determine if context needed (check for questions/requests)
+**Tool Definition**:
 
-**MCP Client (`state.py`)**
+```python
+# search_components tool
+# Input: {query: string}
+# Output: Array of PartObject
+# Calls Nexar API → transforms to PartObject format
+```
 
-- `active_queries = {}` dict: `{queryId: {query, messages, bom_updates}}`
-- `write_bom(components)` → write array to `bom.json`
-- Extract components from Dedalus response and update BOM
+**PartObject Format**:
 
-**MCP Server (`server.py`)**
+- Required: `mpn`, `manufacturer`, `description`, `price`
+- Optional: `currency`, `voltage`, `package`, `interfaces[]`, `datasheet`, `quantity`
 
-- MCP protocol server using `mcp` Python SDK or custom implementation
-- Exposes `search_components` tool via MCP protocol
-- Supports stdio or HTTP transport (check Dedalus SDK requirements)
+## MCP Client (`backend/app.py`)
 
-**MCP Server (`tools.py`)**
+**Purpose**: Single Flask file providing all frontend endpoints
 
-- `search_components(query: str)` → Nexar API → return BOM format array
-- Tool schema: name, description, inputSchema (query parameter)
+**Endpoints**:
 
-**MCP Server (`nexar.py`)**
+1. **`POST /mcp/query`**
 
-- OAuth2 authentication with Nexar API
-- GraphQL query for component search
-- Transform Nexar response to: `{mpn, manufacturer, description, price, currency, voltage, package, interfaces, datasheet}`
+   - Request: `{query: string}`
+   - Response: `{type: "response"|"context_request", queryId?: string, message: string}`
+   - Implementation: Dedalus SDK (~5 lines) → parse response → return
+
+2. **`POST /mcp/continue`**
+
+   - Request: `{context: string, queryId: string}`
+   - Response: Same format as query
+   - Implementation: Dedalus SDK with conversation history → parse → return
+
+3. **`POST /mcp/component-analysis`**
+
+   - Request: `{query: string, contextQueryId?: string, context?: string}`
+   - Response: SSE stream (`text/event-stream`, format: `data: <JSON>\n\n`)
+   - Update types: `reasoning`, `selection`, `complete`, `error`, `context_request`
+   - Implementation: Dedalus SDK streaming → parse → stream updates
+
+**Dedalus SDK Usage** (~5 lines):
+
+```python
+client = AsyncDedalus()
+runner = DedalusRunner(client)
+result = await runner.run(
+    input=query,
+    model="openai/gpt-5",
+    mcp_servers=[MCP_SERVER_REGISTRY_ID]  # e.g., "username/nexar-mcp"
+)
+```
+
+**State Management**:
+
+- In-memory dict: `{queryId: {query, messages}}`
+- BOM file: Write PartObject[] to `bom.json` when components found
+
+**Error Handling**:
+
+- HTTP status codes: 200, 400, 404, 500
+- Support AbortSignal cancellation
+- Timeouts: 30s (chat), 60s (analysis)
 
 ## Dependencies
 
+**MCP Server**:
+
+- openmcp (Dedalus MCP framework)
+- requests (Nexar API)
+
+**MCP Client**:
+
 - Flask
+- flask-cors
 - dedalus-labs
-- requests
 - python-dotenv
-- mcp (Python MCP SDK for server implementation)
 
 ## Environment Variables
 
-- `DEDALUS_API_KEY`
-- `NEXAR_CLIENT_ID`
-- `NEXAR_CLIENT_SECRET`
-- `MCP_SERVER_URL` (MCP server connection string for Dedalus SDK)
+**MCP Client**:
+
+- `DEDALUS_API_KEY` (required)
+- `MCP_SERVER_REGISTRY_ID` (e.g., "username/nexar-mcp" - after upload)
 - `PORT` (default: 3001)
-- `MODEL` (default: "openai/gpt-5" or similar)
+- `MODEL` (default: "openai/gpt-5")
 
-## BOM Format
+**MCP Server**:
 
-`backend/bom.json`:
+- `NEXAR_CLIENT_ID` (required)
+- `NEXAR_CLIENT_SECRET` (required)
+- `PORT` (default: 8080)
 
-```json
-[
-  {
-    "mpn": "ESP32-C3-MINI-1",
-    "manufacturer": "Espressif Systems",
-    "description": "WiFi-enabled 32-bit microcontroller",
-    "price": 2.45,
-    "currency": "USD",
-    "voltage": "3.0V ~ 3.6V",
-    "package": "32-QFN",
-    "interfaces": ["I2C", "SPI", "UART", "WiFi"],
-    "datasheet": "https://..."
-  }
-]
-```
+## Frontend Contract Compliance
 
-## Component Analysis Streaming API
+✅ `/mcp/query` - Exact request/response format
 
-**Endpoint**: `POST /mcp/analysis/start`
+✅ `/mcp/continue` - Exact request/response format
 
-**Request Body**:
+✅ `/mcp/component-analysis` - SSE streaming with all update types
 
-```json
-{
-  "query": "string",
-  "contextQueryId": "string (optional)", // For resuming after context
-  "context": "string (optional)" // Context provided if resuming
-}
-```
+✅ PartObject format matches `types.ts`
 
-**Response**: Server-Sent Events (SSE) stream with update types:
+✅ Context request/resume support
 
-```json
-{"type": "reasoning", "content": "Analyzing power requirements..."}
-{"type": "selection", "component": {...BOM format...}}
-{"type": "context_request", "queryId": "query_123", "message": "What voltage range?"}
-{"type": "complete", "message": "Analysis complete"}
-{"type": "error", "error": "Error message"}
-```
+✅ Error handling per contract
 
-**Endpoint**: `POST /mcp/analysis/continue`
-
-**Request Body**:
-
-```json
-{
-  "context": "string",
-  "queryId": "string"
-}
-```
-
-**Response**: Same SSE stream format as `/mcp/analysis/start`
+✅ AbortSignal support
 
 ## Notes
 
-- Dedalus Labs SDK handles LLM prompting and MCP Server tool/resource integration
-- MCP Server exposes tools/resources via MCP protocol (stdio or HTTP transport compatible with Dedalus SDK)
-- In-memory state only (queryId tracking)
-- MCP Client writes BOM directly when `selection` updates are received
-- Basic error handling per contract (200, 400, 404, 500)
-- Streaming support: ComponentGraph uses Server-Sent Events (SSE) with `text/event-stream` content type
-- SSE format: Each event must be `data: <JSON>\n\n`
-- Update types for streaming: `reasoning`, `selection`, `complete`, `error`, `context_request`
-- Both MCPChat and ComponentGraph can request context and resume with queryId
-- Component Analysis endpoint (`/mcp/component-analysis`) handles both initial queries and context resume via optional parameters
-- When `selection` update received, `partData` must match `PartObject` interface exactly
-- Component hierarchy: `hierarchyLevel` indicates component order (0 = core, 1 = supporting, 2 = secondary, 3 = passive)
-- Request cancellation: Support `AbortSignal` for all endpoints
-- Timeout: 30 seconds for chat endpoints, 60 seconds for component analysis
+- MCP Server is separate project (upload to Dedalus separately)
+- MCP Client is minimal - single file using Dedalus SDK
+- Dedalus SDK handles LLM + MCP tool calls automatically
+- No complex architecture - just what's needed
+
+### To-dos
+
+- [ ] Create MCP Server: src/main.py with search_components tool using openmcp, Nexar API integration, streamable HTTP transport
+- [ ] Create MCP Client: Single app.py Flask file with /mcp/query, /mcp/continue, /mcp/component-analysis endpoints using Dedalus SDK
+- [ ] Implement in-memory query state and BOM JSON file write in app.py
+- [ ] Create requirements.txt, README.md for both projects
