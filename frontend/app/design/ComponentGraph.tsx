@@ -236,7 +236,7 @@ export default function ComponentGraph({
         pausedForContextRef.current = false;
         contextQueryIdRef.current = null;
       })
-      .catch((error) => {
+      .catch((error: any) => {
         // Only log if it's not a cancellation
         if (!error.message?.includes("cancelled") && !error.message?.includes("AbortError")) {
           console.error("Analysis failed:", error);

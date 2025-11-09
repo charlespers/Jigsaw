@@ -2,9 +2,7 @@
  * Component Analysis MCP API Contract
  * 
  * This file defines the API contract for component analysis with the MCP server.
- * Currently using mock implementations for development.
- * 
- * To integrate with the real MCP server, replace the mock functions with actual implementations.
+ * Real API implementations are active by default. Mock implementations are available for testing.
  */
 
 import type { PartObject } from "./types";
@@ -321,8 +319,8 @@ async function mockStartAnalysis(
       
       const delay =
         MOCK_CONFIG.reasoningDelay + Math.random() * 400; // Add some variance
-      await new Promise((resolve) => {
-        const timeoutId = setTimeout(resolve, delay);
+      await new Promise<void>((resolve) => {
+        const timeoutId = setTimeout(() => resolve(), delay);
         // Cancel timeout if aborted
         if (signal) {
           signal.addEventListener("abort", () => {
@@ -362,16 +360,16 @@ async function mockStartAnalysis(
       throw new Error("Analysis cancelled");
     }
     
-    await new Promise((resolve) => {
-      const timeoutId = setTimeout(resolve, MOCK_CONFIG.selectionDelay);
-      // Cancel timeout if aborted
-      if (signal) {
-        signal.addEventListener("abort", () => {
-          clearTimeout(timeoutId);
-          resolve();
-        });
-      }
-    });
+      await new Promise<void>((resolve) => {
+        const timeoutId = setTimeout(() => resolve(), MOCK_CONFIG.selectionDelay);
+        // Cancel timeout if aborted
+        if (signal) {
+          signal.addEventListener("abort", () => {
+            clearTimeout(timeoutId);
+            resolve();
+          });
+        }
+      });
     
     // Check again after delay
     if (signal?.aborted) {
@@ -407,8 +405,8 @@ async function mockStartAnalysis(
     throw new Error("Analysis cancelled");
   }
   
-  await new Promise((resolve) => {
-    const timeoutId = setTimeout(resolve, 500);
+  await new Promise<void>((resolve) => {
+    const timeoutId = setTimeout(() => resolve(), 500);
     // Cancel timeout if aborted
     if (signal) {
       signal.addEventListener("abort", () => {
@@ -473,8 +471,12 @@ async function realStartAnalysis(
       requestBody.context = context;
     }
 
+    const url = `${config.baseUrl}${config.analysisEndpoint}`;
+    console.log(`[Component Analysis] Starting analysis at: ${url}`);
+    console.log(`[Component Analysis] Query:`, query.substring(0, 100) + "...");
+
     // POST to /mcp/component-analysis endpoint
-    const response = await fetch(`${config.baseUrl}${config.analysisEndpoint}`, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -486,7 +488,9 @@ async function realStartAnalysis(
     if (timeoutId) clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.error(`[Component Analysis] HTTP error ${response.status}:`, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     // Verify Content-Type is text/event-stream for SSE
@@ -557,6 +561,30 @@ async function realStartAnalysis(
     if (error.name === "AbortError") {
       throw new Error("Analysis timeout or cancelled");
     }
+    // Enhanced error logging for fetch failures
+    if (error.message?.includes("Failed to fetch") || error.name === "TypeError") {
+      const isConnectionRefused = error.message?.includes("ERR_CONNECTION_REFUSED") || 
+                                  error.message?.includes("Connection refused");
+      
+      if (isConnectionRefused) {
+        console.error(`[Component Analysis] ❌ Connection Refused - Backend server is not running!`);
+        console.error(`[Component Analysis] The backend at ${config.baseUrl} is not accessible.`);
+        console.error(`[Component Analysis] Action required:`);
+        console.error(`  1. Make sure your MCP backend server is running`);
+        console.error(`  2. Check if it's running on a different port (not 3001)`);
+        console.error(`  3. Update VITE_MCP_SERVER_URL in .env if needed`);
+        console.error(`  4. Check backend logs to see what port it's actually using`);
+        throw new Error(`Backend server at ${config.baseUrl} is not running. Please start your MCP backend server.`);
+      } else {
+        console.error(`[Component Analysis] Network error - Failed to connect to ${config.baseUrl}${config.analysisEndpoint}`);
+        console.error(`[Component Analysis] Possible causes:`);
+        console.error(`  - Backend server is not running`);
+        console.error(`  - CORS is not configured on the backend`);
+        console.error(`  - Wrong URL (current: ${config.baseUrl})`);
+        console.error(`  - Network connectivity issues`);
+        throw new Error(`Failed to connect to MCP server at ${config.baseUrl}. Make sure the backend is running and CORS is configured.`);
+      }
+    }
     throw error;
   }
 }
@@ -596,7 +624,7 @@ class ComponentAnalysisService {
     }
 
     const controller = signal ? undefined : new AbortController();
-    this.currentAnalysis = controller || undefined;
+    this.currentAnalysis = controller ?? null;
     const abortSignal = signal || controller?.signal;
 
     try {
@@ -658,7 +686,7 @@ export const componentAnalysisApi = new ComponentAnalysisService(
       ? ((import.meta as any).env?.VITE_MCP_SERVER_URL || "http://localhost:3001")
       : "http://localhost:3001",
   },
-  true // Set to false when MCP server is ready
+  false // Using real MCP server
 );
 
 // Export the class for creating custom instances

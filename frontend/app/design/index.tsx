@@ -72,7 +72,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
   const [analysisQuery, setAnalysisQuery] = useState<string>(initialQuery);
   const [parts, setParts] = useState<PartObject[]>([]);
   const [selectedComponents, setSelectedComponents] = useState<
-    Map<string, { id: string; label: string; position: { x: number; y: number }; color?: string; size?: { w: number; h: number } }>
+    Map<string, { id: string; label: string; position: { x: number; y: number }; color?: string; size?: { w: number; h: number }; partData?: PartObject }>
   >(new Map());
 
   // Track previous query to detect new queries
@@ -391,7 +391,7 @@ export default function DesignInterface({ initialQuery = "" }: DesignInterfacePr
           {/* MCP Chat - fixed height at bottom */}
           <div className="flex-shrink-0 border-t border-zinc-800 overflow-hidden">
             <MCPChat
-              useMock={true}
+              useMock={false}
               onQuerySent={handleQuerySent}
               onContextRequested={handleChatContextRequested}
               onContextProvided={handleChatContextProvided}

@@ -35,7 +35,7 @@ interface MCPChatProps {
 
 export default function MCPChat({ 
   mcpServerUrl, 
-  useMock = true,
+  useMock = false,
   onQuerySent,
   onContextRequested,
   onContextProvided,
