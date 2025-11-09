@@ -5,6 +5,7 @@
  */
 import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import fs from 'fs';
 
 export class DatabaseClient {
   private db: DatabaseType;
@@ -12,14 +13,43 @@ export class DatabaseClient {
 
   constructor(databasePath: string) {
     try {
+      // Verify file exists before attempting connection
+      if (!fs.existsSync(databasePath)) {
+        throw new Error(`Database file does not exist at path: ${databasePath}`);
+      }
+      
+      // Check file permissions
+      try {
+        fs.accessSync(databasePath, fs.constants.R_OK);
+      } catch (permError) {
+        throw new Error(`Database file is not readable: ${databasePath}`);
+      }
+      
       this.db = new Database(databasePath, { readonly: true });
       console.log(`✓ Connected to database: ${databasePath}`);
-      // Verify database is accessible
-      const testStmt = this.db.prepare('SELECT COUNT(*) as count FROM sqlite_master WHERE type="table"');
+      
+      // Verify database is accessible and has tables
+      const testStmt = this.db.prepare("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'");
       const result = testStmt.get() as { count: number };
+      
+      if (result.count === 0) {
+        throw new Error(`Database appears to be empty (no tables found)`);
+      }
+      
       console.log(`✓ Database contains ${result.count} tables`);
+      
+      // Verify we can query at least one table
+      const tableStmt = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1");
+      const firstTable = tableStmt.get() as { name: string } | undefined;
+      if (firstTable) {
+        console.log(`✓ Verified database structure (sample table: ${firstTable.name})`);
+      }
     } catch (error) {
       console.error(`✗ Failed to connect to database: ${databasePath}`);
+      console.error(`  Error details: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof Error && error.stack) {
+        console.error(`  Stack trace: ${error.stack}`);
+      }
       throw new Error(`Failed to connect to database: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
