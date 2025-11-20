@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,25 +7,12 @@ env/
 venv/
 ENV/
 .venv
-
-# Environment variables
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
 .env
-*.env
-
-# BOM file (auto-generated)
-bom.json
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
 *.log
-logs/
 
